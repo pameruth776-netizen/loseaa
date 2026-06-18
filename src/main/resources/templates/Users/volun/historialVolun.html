@@ -506,6 +506,7 @@
                             <th>Dirección</th>
                             <th>Fecha y Hora</th>
                             <th>Estado</th>
+                            <th>Calificación</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -537,6 +538,12 @@
                                     Finalizada
                                 </span>
                             </td>
+                            <td data-label="Calificación">
+                                <span th:if="${h.calificacion == 'SIN_CALIFICAR'}" style="color: #9ca3af; font-style: italic;">Sin calificar</span>
+                                <span th:if="${h.calificacion == 'MEDALLA_ORO'}" class="badge-status" style="background: rgba(254, 240, 138, 0.3); color: #854d0e; border: 1px solid rgba(254, 240, 138, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de oro 🥇</span>
+                                <span th:if="${h.calificacion == 'MEDALLA_PLATA'}" class="badge-status" style="background: rgba(243, 244, 246, 0.3); color: #4b5563; border: 1px solid rgba(243, 244, 246, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de plata 🥈</span>
+                                <span th:if="${h.calificacion == 'MEDALLA_COBRE'}" class="badge-status" style="background: rgba(254, 215, 170, 0.3); color: #c2410c; border: 1px solid rgba(254, 215, 170, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de cobre 🥉</span>
+                            </td>
                             <td data-label="Acciones">
                                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                                     <button class="btn-action btn-green" th:onclick="'abrirModalComentar(' + ${h.id} + ')'">Comentar</button>
@@ -548,7 +555,6 @@
                 </table>
             </div>
         </div>
-    </div>
 
     <!-- Modal Comentar -->
     <div id="modalComentar" class="modal-overlay">
@@ -696,5 +702,6 @@
             }, 3000);
         }
     </script>
+    </div>
 </body>
 </html>
