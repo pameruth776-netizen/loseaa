@@ -336,7 +336,7 @@
                     <div class="adm-activ-list">
                         <div class="adm-activ-item"
                              th:each="inc : ${incidencias}"
-                             th:onclick="'showIncidenceDetails(' + ${inc.id} + ', this)'">
+                             th:onclick="|showIncidenceDetails(${inc.id}, this)|">
                             <span class="adm-avatar adm-avatar--indigo" style="background-color: #FEE2E2; color: #EF4444; font-weight: 800;">!</span>
                             <div>
                                 <div class="adm-cell-user__name" style="font-weight: 700; color: #1E293B;" th:text="'Incidencia #' + ${inc.id}">Incidencia #1</div>
@@ -404,7 +404,7 @@
                             <div class="sanction-history-box" th:if="${inc.solicitud.voluntarioAceptado != null}">
                                 <div class="sanction-history-title">Historial de Sanciones del Voluntario</div>
                                 
-                                <th:block th:with="volSanciones=${sancionesPorUsuario[inc.solicitud.voluntarioAceptado.id]}">
+                                <th:block th:with="volSanciones=${inc.solicitud.voluntarioAceptado != null ? sancionesPorUsuario[inc.solicitud.voluntarioAceptado.id] : null}">
                                     <div th:if="${volSanciones == null or #lists.isEmpty(volSanciones)}" style="font-size: 0.85rem; color: #475569; font-weight: 500;">
                                         ✅ Sin advertencias previas (Cuenta limpia).
                                     </div>
@@ -437,9 +437,9 @@
                             <!-- Botones de Acción para Sancionar al Voluntario -->
                             <div class="action-buttons-group" th:if="${inc.solicitud.voluntarioAceptado != null}">
                                 <form th:action="@{/admin/incidencias/sancionar}" method="post" 
-                                      th:onsubmit="'return confirm(\'¿Enviar Primer Aviso por conductas indebidas a ' + ${inc.solicitud.voluntarioAceptado.nombreCompleto} + '? Se registrará el incidente en su historial.\')'">
+                                      th:onsubmit="|return confirm('¿Enviar Primer Aviso por conductas indebidas a ${inc.solicitud.voluntarioAceptado?.nombreCompleto}? Se registrará el incidente en su historial.')|">
                                     <input type="hidden" name="historialId" th:value="${inc.id}">
-                                    <input type="hidden" name="reportedUserId" th:value="${inc.solicitud.voluntarioAceptado.id}">
+                                    <input type="hidden" name="reportedUserId" th:value="${inc.solicitud.voluntarioAceptado?.id}">
                                     <input type="hidden" name="tipoSancion" value="AVISO_1">
                                     <input type="hidden" name="motivo" value="Primer aviso por conducta indebida reportada en el historial de ayuda.">
                                     <button type="submit" class="btn-sancion btn-sancion--green">
@@ -448,9 +448,9 @@
                                     </button>
                                 </form>
                                 <form th:action="@{/admin/incidencias/sancionar}" method="post" 
-                                      th:onsubmit="'return confirm(\'¿Enviar Segundo Aviso a ' + ${inc.solicitud.voluntarioAceptado.nombreCompleto} + '? Se le advertirá que la próxima infracción resultará en el bloqueo de su cuenta.\')'">
+                                      th:onsubmit="|return confirm('¿Enviar Segundo Aviso a ${inc.solicitud.voluntarioAceptado?.nombreCompleto}? Se le advertirá que la próxima infracción resultará en el bloqueo de su cuenta.')|">
                                     <input type="hidden" name="historialId" th:value="${inc.id}">
-                                    <input type="hidden" name="reportedUserId" th:value="${inc.solicitud.voluntarioAceptado.id}">
+                                    <input type="hidden" name="reportedUserId" th:value="${inc.solicitud.voluntarioAceptado?.id}">
                                     <input type="hidden" name="tipoSancion" value="AVISO_2">
                                     <input type="hidden" name="motivo" value="Segundo aviso por mala conducta. Cuenta advertida bajo riesgo de suspensión.">
                                     <button type="submit" class="btn-sancion btn-sancion--yellow">
@@ -459,7 +459,7 @@
                                     </button>
                                 </form>
                                 <button type="button" class="btn-sancion btn-sancion--red" 
-                                        th:onclick="'openBlockModal(' + ${inc.id} + ', ' + ${inc.solicitud.voluntarioAceptado.id} + ', \'' + ${inc.solicitud.voluntarioAceptado.nombreCompleto} + '\')'">
+                                        th:onclick="|openBlockModal(${inc.id}, ${inc.solicitud.voluntarioAceptado?.id}, '${inc.solicitud.voluntarioAceptado?.nombreCompleto}')|">
                                     <svg viewBox="0 0 24 24" style="width:16px; height:16px; fill:white;"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
                                     Bloquear cuenta
                                 </button>
@@ -498,7 +498,7 @@
                             <div class="sanction-history-box" th:if="${inc.solicitud.discapacitado != null}">
                                 <div class="sanction-history-title">Historial de Sanciones del Beneficiario</div>
                                 
-                                <th:block th:with="discSanciones=${sancionesPorUsuario[inc.solicitud.discapacitado.id]}">
+                                <th:block th:with="discSanciones=${inc.solicitud.discapacitado != null ? sancionesPorUsuario[inc.solicitud.discapacitado.id] : null}">
                                     <div th:if="${discSanciones == null or #lists.isEmpty(discSanciones)}" style="font-size: 0.85rem; color: #475569; font-weight: 500;">
                                         ✅ Sin advertencias previas (Cuenta limpia).
                                     </div>
@@ -531,9 +531,9 @@
                             <!-- Botones de Acción para Sancionar al Beneficiario -->
                             <div class="action-buttons-group" th:if="${inc.solicitud.discapacitado != null}">
                                 <form th:action="@{/admin/incidencias/sancionar}" method="post" 
-                                      th:onsubmit="'return confirm(\'¿Enviar Primer Aviso por conductas indebidas a ' + ${inc.solicitud.discapacitado.nombreCompleto} + '? Se registrará el incidente en su historial.\')'">
+                                      th:onsubmit="|return confirm('¿Enviar Primer Aviso por conductas indebidas a ${inc.solicitud.discapacitado?.nombreCompleto}? Se registrará el incidente en su historial.')|">
                                     <input type="hidden" name="historialId" th:value="${inc.id}">
-                                    <input type="hidden" name="reportedUserId" th:value="${inc.solicitud.discapacitado.id}">
+                                    <input type="hidden" name="reportedUserId" th:value="${inc.solicitud.discapacitado?.id}">
                                     <input type="hidden" name="tipoSancion" value="AVISO_1">
                                     <input type="hidden" name="motivo" value="Primer aviso por conducta indebida reportada en el historial de ayuda.">
                                     <button type="submit" class="btn-sancion btn-sancion--green">
@@ -542,9 +542,9 @@
                                     </button>
                                 </form>
                                 <form th:action="@{/admin/incidencias/sancionar}" method="post" 
-                                      th:onsubmit="'return confirm(\'¿Enviar Segundo Aviso a ' + ${inc.solicitud.discapacitado.nombreCompleto} + '? Se le advertirá que la próxima infracción resultará en el bloqueo de su cuenta.\')'">
+                                      th:onsubmit="|return confirm('¿Enviar Segundo Aviso a ${inc.solicitud.discapacitado?.nombreCompleto}? Se le advertirá que la próxima infracción resultará en el bloqueo de su cuenta.')|">
                                     <input type="hidden" name="historialId" th:value="${inc.id}">
-                                    <input type="hidden" name="reportedUserId" th:value="${inc.solicitud.discapacitado.id}">
+                                    <input type="hidden" name="reportedUserId" th:value="${inc.solicitud.discapacitado?.id}">
                                     <input type="hidden" name="tipoSancion" value="AVISO_2">
                                     <input type="hidden" name="motivo" value="Segundo aviso por mala conducta. Cuenta advertida bajo riesgo de suspensión.">
                                     <button type="submit" class="btn-sancion btn-sancion--yellow">
@@ -553,7 +553,7 @@
                                     </button>
                                 </form>
                                 <button type="button" class="btn-sancion btn-sancion--red" 
-                                        th:onclick="'openBlockModal(' + ${inc.id} + ', ' + ${inc.solicitud.discapacitado.id} + ', \'' + ${inc.solicitud.discapacitado.nombreCompleto} + '\')'">
+                                        th:onclick="|openBlockModal(${inc.id}, ${inc.solicitud.discapacitado?.id}, '${inc.solicitud.discapacitado?.nombreCompleto}')|">
                                     <svg viewBox="0 0 24 24" style="width:16px; height:16px; fill:white;"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
                                     Bloquear cuenta
                                 </button>

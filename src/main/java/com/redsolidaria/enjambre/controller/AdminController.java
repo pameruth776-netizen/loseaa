@@ -7,6 +7,7 @@ import com.redsolidaria.enjambre.model.HistorialAyuda;
 import com.redsolidaria.enjambre.model.Sancion;
 import com.redsolidaria.enjambre.repository.HistorialAyudaRepository;
 import com.redsolidaria.enjambre.repository.SancionRepository;
+import com.redsolidaria.enjambre.repository.AdministradorRepository;
 import com.redsolidaria.enjambre.service.UsuarioService;
 import com.redsolidaria.enjambre.service.EmailService;
 import jakarta.validation.Valid;
@@ -37,6 +38,9 @@ public class AdminController {
 
     @Autowired
     private SancionRepository sancionRepository;
+
+    @Autowired
+    private AdministradorRepository administradorRepository;
 
     // ========== DASHBOARD ==========
     
@@ -241,7 +245,8 @@ public class AdminController {
             HistorialAyuda historial = historialAyudaRepository.findById(historialId)
                 .orElseThrow(() -> new IllegalArgumentException("Historial no encontrado"));
 
-            Administrador administrador = (Administrador) admin;
+            Administrador administrador = administradorRepository.findById(admin.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Administrador no encontrado"));
 
             Sancion sancion = new Sancion(reportedUser, historial, tipoSancion, motivo, administrador);
             sancionRepository.save(sancion);
