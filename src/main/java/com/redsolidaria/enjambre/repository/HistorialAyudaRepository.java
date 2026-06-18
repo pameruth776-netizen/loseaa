@@ -15,6 +15,9 @@ public interface HistorialAyudaRepository extends JpaRepository<HistorialAyuda, 
 
     long countBySolicitud_VoluntarioAceptado_Id(Long voluntarioId);
 
+    void deleteBySolicitud_Discapacitado_Id(Long discapacitadoId);
+    void deleteBySolicitud_VoluntarioAceptado_Id(Long voluntarioId);
+
     @Query("SELECT h FROM HistorialAyuda h WHERE (h.incidenciaDiscapacitado IS NOT NULL AND h.incidenciaDiscapacitado != '') OR (h.incidenciaVoluntario IS NOT NULL AND h.incidenciaVoluntario != '') ORDER BY h.fechaFinalizacion DESC")
     List<HistorialAyuda> findIncidenciasReportadas();
 }
