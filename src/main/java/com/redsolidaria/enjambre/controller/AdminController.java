@@ -3,6 +3,10 @@ package com.redsolidaria.enjambre.controller;
 import com.redsolidaria.enjambre.dto.AdminDTO;
 import com.redsolidaria.enjambre.model.Administrador;
 import com.redsolidaria.enjambre.model.Usuario;
+import com.redsolidaria.enjambre.model.HistorialAyuda;
+import com.redsolidaria.enjambre.model.Sancion;
+import com.redsolidaria.enjambre.repository.HistorialAyudaRepository;
+import com.redsolidaria.enjambre.repository.SancionRepository;
 import com.redsolidaria.enjambre.service.UsuarioService;
 import com.redsolidaria.enjambre.service.EmailService;
 import jakarta.validation.Valid;
@@ -14,6 +18,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.HttpSession;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @Controller
 @RequestMapping("/admin")
@@ -24,6 +31,12 @@ public class AdminController {
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private HistorialAyudaRepository historialAyudaRepository;
+
+    @Autowired
+    private SancionRepository sancionRepository;
 
     // ========== DASHBOARD ==========
     
@@ -176,5 +189,82 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("error", "❌ Error al rechazar la cuenta: " + e.getMessage());
         }
         return "redirect:/admin/activacion";
+    }
+
+    // ========== GESTIÓN DE INCIDENCIAS ==========
+
+    @GetMapping("/incidencias")
+    public String incidencias(Model model, HttpSession session) {
+        Usuario admin = (Usuario) session.getAttribute("usuario");
+        if (admin == null || !"ADMIN".equals(admin.getRol())) {
+            return "redirect:/login";
+        }
+
+        List<HistorialAyuda> incidencias = historialAyudaRepository.findIncidenciasReportadas();
+        model.addAttribute("incidencias", incidencias);
+
+        Map<Long, List<Sancion>> sancionesPorUsuario = new HashMap<>();
+        for (HistorialAyuda h : incidencias) {
+            if (h.getSolicitud().getVoluntarioAceptado() != null) {
+                Long volId = h.getSolicitud().getVoluntarioAceptado().getId();
+                sancionesPorUsuario.putIfAbsent(volId, sancionRepository.findByUsuario_Id(volId));
+            }
+            if (h.getSolicitud().getDiscapacitado() != null) {
+                Long discId = h.getSolicitud().getDiscapacitado().getId();
+                sancionesPorUsuario.putIfAbsent(discId, sancionRepository.findByUsuario_Id(discId));
+            }
+        }
+        model.addAttribute("sancionesPorUsuario", sancionesPorUsuario);
+
+        return "admin/incidencias";
+    }
+
+    @PostMapping("/incidencias/sancionar")
+    public String sancionar(@RequestParam Long historialId,
+                            @RequestParam Long reportedUserId,
+                            @RequestParam String tipoSancion,
+                            @RequestParam(required = false) String motivo,
+                            HttpSession session,
+                            RedirectAttributes redirectAttributes) {
+        Usuario admin = (Usuario) session.getAttribute("usuario");
+        if (admin == null || !"ADMIN".equals(admin.getRol())) {
+            return "redirect:/login";
+        }
+
+        try {
+            Usuario reportedUser = usuarioService.buscarPorId(reportedUserId);
+            if (reportedUser == null) {
+                redirectAttributes.addFlashAttribute("error", "❌ Usuario reportado no encontrado");
+                return "redirect:/admin/incidencias";
+            }
+
+            HistorialAyuda historial = historialAyudaRepository.findById(historialId)
+                .orElseThrow(() -> new IllegalArgumentException("Historial no encontrado"));
+
+            Administrador administrador = (Administrador) admin;
+
+            Sancion sancion = new Sancion(reportedUser, historial, tipoSancion, motivo, administrador);
+            sancionRepository.save(sancion);
+
+            boolean isVoluntario = "VOLUNTARIO".equals(reportedUser.getRol());
+
+            if ("AVISO_1".equals(tipoSancion)) {
+                emailService.enviarPrimerAvisoIncidencia(reportedUser.getEmail(), isVoluntario);
+                redirectAttributes.addFlashAttribute("success", "✅ Primer aviso registrado y enviado por correo a: " + reportedUser.getEmail());
+            } else if ("AVISO_2".equals(tipoSancion)) {
+                emailService.enviarSegundoAvisoIncidencia(reportedUser.getEmail(), isVoluntario);
+                redirectAttributes.addFlashAttribute("success", "✅ Segundo aviso registrado y enviado por correo a: " + reportedUser.getEmail());
+            } else if ("BLOQUEO".equals(tipoSancion)) {
+                reportedUser.setEstado("BLOQUEADO");
+                usuarioService.guardarUsuario(reportedUser);
+                emailService.enviarBloqueoCuentaIncidencia(reportedUser.getEmail(), isVoluntario, motivo);
+                redirectAttributes.addFlashAttribute("success", "🚫 Cuenta bloqueada permanentemente y notificación enviada a: " + reportedUser.getEmail());
+            }
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "❌ Error al aplicar sanción: " + e.getMessage());
+        }
+
+        return "redirect:/admin/incidencias";
     }
 }

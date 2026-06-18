@@ -520,7 +520,7 @@
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
                     </div>
-                    <p class="ml-stat-value" id="totalAyudados">0</p>
+                    <p class="ml-stat-value" id="totalAyudados" th:text="${totalAyudados != null ? totalAyudados : 0}">0</p>
                     <p class="ml-stat-label">Personas Ayudadas</p>
                 </div>
 
@@ -920,18 +920,11 @@
                                 <div class="ml-line">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                          stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 0 1 16 0Z"/>
-                                        <circle cx="12" cy="10" r="3"/>
-                                    </svg>
-                                    <span>${escapeHtml(d.direccion || 'Av. Principal 123')}</span>
-                                </div>
-                                <div class="ml-line" style="opacity:.9;">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                         stroke-linecap="round" stroke-linejoin="round">
                                         <circle cx="12" cy="12" r="10"/>
-                                        <path d="M12 6v6l4 2"/>
+                                        <path d="M12 8v4"/>
+                                        <path d="M12 16h.01"/>
                                     </svg>
-                                    <span>Ubicación: lat=${escapeHtml(ub.lat)} lng=${escapeHtml(ub.lng)}</span>
+                                    <span>Discapacidad: <strong>${escapeHtml(d.tipoDiscapacidad || '—')}</strong></span>
                                 </div>
                             </div>
                         </div>
@@ -984,11 +977,8 @@
                             <div style="font-size:0.85rem;color:#4a5568;">📞 ${escapeHtml(d.telefono || '—')}</div>
                         </div>
                     </div>
-                    <div style="font-size:0.88rem;color:#4a5568;margin-bottom:4px;">
+                    <div style="font-size:0.88rem;color:#4a5568;margin-bottom:10px;">
                         🏠 ${escapeHtml(d.direccion || '—')}
-                    </div>
-                    <div style="font-size:0.85rem;color:#6b7280;margin-bottom:10px;">
-                        📍 Lat: ${escapeHtml(ub.lat)}, Lng: ${escapeHtml(ub.lng)}
                     </div>
                     <button id="btnTerminarAyuda" style="width:100%;padding:12px;border:none;background:#ef4444;color:white;border-radius:999px;font-weight:800;font-size:1rem;cursor:pointer;transition:background .18s;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
                         ✅ Terminar Ayuda
@@ -1257,10 +1247,6 @@
                             solicitudesActivas.clear();
                             if (lista) lista.innerHTML = '';
                             setSinAlertas();
-                            if (totalAyudados) {
-                                const current = Number(totalAyudados.textContent || '0') || 0;
-                                totalAyudados.textContent = String(current + 1);
-                            }
                             const ubConfirm = data.ubicacionDiscapacitado || cachedUbicacionDiscapacitado;
                             renderDiscapacitado(data.discapacitado, ubConfirm);
                             showToast('✅ ¡Solicitud aceptada! El mapa se actualiza en tiempo real.', 'success', 5000);
@@ -1281,8 +1267,15 @@
                             break;
                         }
                         case 'SOLICITUD_CANCELADA':
-                        case 'SOLICITUD_CANCELADA_POR_USUARIO':
+                        case 'SOLICITUD_CANCELADA_POR_USUARIO': {
+                            terminarAyuda();
+                            break;
+                        }
                         case 'AYUDA_FINALIZADA': {
+                            if (totalAyudados) {
+                                const current = Number(totalAyudados.textContent || '0') || 0;
+                                totalAyudados.textContent = String(current + 1);
+                            }
                             terminarAyuda();
                             break;
                         }

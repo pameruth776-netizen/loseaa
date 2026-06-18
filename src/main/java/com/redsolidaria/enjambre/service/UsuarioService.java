@@ -376,4 +376,8 @@ public class UsuarioService {
             }
         }
     }
+
+    public void guardarUsuario(Usuario usuario) {
+        usuarioRepository.save(usuario);
+    }
 }
