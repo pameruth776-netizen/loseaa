@@ -410,6 +410,7 @@ public class AyudaService {
         m.put("apellidos", d.getApellidos());
         m.put("telefono", d.getTelefono());
         m.put("direccion", d.getDireccion());
+        m.put("tipoDiscapacidad", d.getTipoDiscapacidad());
         return m;
     }
 

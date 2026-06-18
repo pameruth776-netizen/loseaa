@@ -138,8 +138,35 @@ public class EmailService {
         String text = "Hola " + nombre + ",\n\n" +
                         "Agradecemos enormemente tu intención de donar.\n" +
                         "Lamentablemente, en esta ocasión no podemos recibir el producto propuesto debido a políticas internas o falta de capacidad de almacenamiento para este tipo de implemento.\n" +
-                        "Esperamos poder contar con tu ayuda en futuras oportunidades.\n\n" +
-                        "Saludos,\nEquipo Red Solidaria UTP";
+                        "Esperamos poder contar con tu ayuda en futuras oportunidades.\n\n";
         sendEmailViaBrevo(emailDestino, "⚠️ Actualización sobre tu donación de producto - Red Solidaria UTP", text);
+    }
+
+    @Async
+    public void enviarPrimerAvisoIncidencia(String emailDestino, boolean isVoluntario) {
+        String rolText = isVoluntario ? "durante tu voluntariado" : "al recibir ayuda";
+        String text = "Hola,\n\nTe escribimos para enviarte el primer aviso de advertencia, debido a que has sido reportado por realizar acciones indebidas " + rolText + ".\n\n" +
+                        "Por favor, mantén una conducta adecuada y respeta las normas de la Red Solidaria UTP.\n\n" +
+                        "Saludos,\nEquipo Red Solidaria UTP";
+        sendEmailViaBrevo(emailDestino, "⚠️ Primer Aviso de Advertencia - Red Solidaria UTP", text);
+    }
+
+    @Async
+    public void enviarSegundoAvisoIncidencia(String emailDestino, boolean isVoluntario) {
+        String rolText = isVoluntario ? "durante tu voluntariado" : "al recibir ayuda";
+        String text = "Hola,\n\nTe escribimos para enviarte el segundo aviso de advertencia, debido a que has sido reportado nuevamente por realizar acciones indebidas " + rolText + ".\n\n" +
+                        "⚠️ IMPORTANTE: Si recibes una tercera advertencia, tu cuenta será bloqueada de manera permanente.\n\n" +
+                        "Saludos,\nEquipo Red Solidaria UTP";
+        sendEmailViaBrevo(emailDestino, "⚠️ Segundo Aviso de Advertencia - Red Solidaria UTP", text);
+    }
+
+    @Async
+    public void enviarBloqueoCuentaIncidencia(String emailDestino, boolean isVoluntario, String motivo) {
+        String rolText = isVoluntario ? "durante tu voluntariado" : "al recibir ayuda";
+        String text = "Hola,\n\nLamentamos informarte que tu cuenta ha sido inhabilitada permanentemente debido a que has realizado conductas indebidas " + rolText + ".\n\n" +
+                        "Detalle del bloqueo:\n" + (motivo != null ? motivo : "Infracción reiterada de normas de la Red Solidaria.") + "\n\n" +
+                        "Esta es una acción definitiva.\n\n" +
+                        "Saludos,\nEquipo Red Solidaria UTP";
+        sendEmailViaBrevo(emailDestino, "❌ Tu cuenta ha sido inhabilitada - Red Solidaria UTP", text);
     }
 }
