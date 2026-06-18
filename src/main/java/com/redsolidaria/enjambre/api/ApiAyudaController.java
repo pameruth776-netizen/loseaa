@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -104,6 +105,101 @@ public class ApiAyudaController {
             return ResponseEntity.ok(Map.of("success", true));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Error al cancelar la solicitud: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/historial/{id}/calificar")
+    public ResponseEntity<?> calificarHistorial(
+            @PathVariable("id") Long id,
+            @RequestBody Map<String, String> payload,
+            HttpSession session) {
+        Usuario usuario = (Usuario) session.getAttribute("usuario");
+        if (usuario == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Sesión expirada"));
+        }
+
+        try {
+            String calificacion = payload.get("calificacion");
+            ayudaService.calificarAyuda(id, calificacion, usuario.getId());
+            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Calificación guardada"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/historial/{id}/comentar-discapacitado")
+    public ResponseEntity<?> comentarDiscapacitado(
+            @PathVariable("id") Long id,
+            @RequestBody Map<String, String> payload,
+            HttpSession session) {
+        Usuario usuario = (Usuario) session.getAttribute("usuario");
+        if (usuario == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Sesión expirada"));
+        }
+
+        try {
+            String comentario = payload.get("comentario");
+            ayudaService.guardarComentarioDiscapacitado(id, comentario, usuario.getId());
+            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Comentario guardado"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/historial/{id}/comentar-voluntario")
+    public ResponseEntity<?> comentarVoluntario(
+            @PathVariable("id") Long id,
+            @RequestBody Map<String, String> payload,
+            HttpSession session) {
+        Usuario usuario = (Usuario) session.getAttribute("usuario");
+        if (usuario == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Sesión expirada"));
+        }
+
+        try {
+            String comentario = payload.get("comentario");
+            ayudaService.guardarComentarioVoluntario(id, comentario, usuario.getId());
+            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Comentario guardado"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/historial/{id}/incidencia-discapacitado")
+    public ResponseEntity<?> incidenciaDiscapacitado(
+            @PathVariable("id") Long id,
+            @RequestParam("descripcion") String descripcion,
+            @RequestParam(value = "evidencia", required = false) MultipartFile evidencia,
+            HttpSession session) {
+        Usuario usuario = (Usuario) session.getAttribute("usuario");
+        if (usuario == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Sesión expirada"));
+        }
+
+        try {
+            ayudaService.guardarIncidenciaDiscapacitado(id, descripcion, evidencia, usuario.getId());
+            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Incidencia registrada"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/historial/{id}/incidencia-voluntario")
+    public ResponseEntity<?> incidenciaVoluntario(
+            @PathVariable("id") Long id,
+            @RequestParam("descripcion") String descripcion,
+            @RequestParam(value = "evidencia", required = false) MultipartFile evidencia,
+            HttpSession session) {
+        Usuario usuario = (Usuario) session.getAttribute("usuario");
+        if (usuario == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Sesión expirada"));
+        }
+
+        try {
+            ayudaService.guardarIncidenciaVoluntario(id, descripcion, evidencia, usuario.getId());
+            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Incidencia registrada"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }
