@@ -393,6 +393,11 @@
                 background: #DC2626;
                 transform: translateY(-1px);
             }
+            button.badge-status:disabled {
+                cursor: not-allowed;
+                opacity: 0.9;
+            }
+
 
             /* Estilos de Modales Premium */
             .modal-overlay {
@@ -574,14 +579,17 @@
                                     
                                     <!-- Comprobar si ya existe incidencia reportada por el discapacitado actual en este historial -->
                                     <th:block th:with="myIncidents=${h.incidencias.?[denunciante.id == session.usuario.id]}">
+                                        <!-- Botón de incidencia activo (si no ha reportado) -->
                                         <button th:if="${myIncidents.isEmpty()}" 
                                                 class="btn-action btn-red" 
                                                 th:onclick="'abrirModalIncidencia(' + ${h.id} + ')'">Incidencia</button>
                                         
-                                        <span th:if="${!myIncidents.isEmpty()}" 
-                                              class="badge-status"
-                                              th:classappend="${myIncidents[0].estado == 'PENDIENTE' ? ' badge-pendiente' : (myIncidents[0].estado == 'EN_REVISION' ? ' badge-revision' : ' badge-resuelto')}"
-                                              th:text="${myIncidents[0].estado}">PENDIENTE</span>
+                                        <!-- Botón de incidencia bloqueado (si ya reportó) -->
+                                        <button th:if="${!myIncidents.isEmpty()}" 
+                                                class="badge-status" 
+                                                disabled="disabled"
+                                                th:classappend="${myIncidents[0].estado == 'PENDIENTE' ? 'badge-pendiente' : (myIncidents[0].estado == 'EN_REVISION' ? 'badge-revision' : 'badge-resuelto')}"
+                                                th:text="${myIncidents[0].estado == 'PENDIENTE' ? 'PENDIENTE' : (myIncidents[0].estado == 'EN_REVISION' ? 'EN REVISIÓN' : 'RESUELTO')}">PENDIENTE</button>
                                     </th:block>
                                 </div>
                             </td>

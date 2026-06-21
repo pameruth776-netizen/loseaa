@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{admin/layoutAdm :: html}"
+      th:replace="~{admin/layoutAdm :: html(content=~{::content})}"
       th:with="titulo='Gestión de incidencias'">
 <head></head>
 <body>
@@ -342,8 +342,8 @@
                                 <div class="adm-cell-user__name" style="font-weight: 700; color: #1E293B;" th:text="'Incidencia #' + ${inc.id}">Incidencia #1</div>
                                 <div class="adm-cell-user__email" style="font-size: 0.8rem; color: #64748B;" th:text="${#temporals.format(inc.fechaCreacion, 'dd/MM/yyyy HH:mm')}">Fecha</div>
                                 <div style="margin-top: 0.35rem; display: flex; gap: 4px; flex-wrap: wrap;">
-                                    <span th:if="${inc.denunciante.rol == 'DISCAPACITADO'}" class="adm-badge adm-badge--vol" style="background-color: #E0F2FE; color: #0369A1;">Contra Voluntario</span>
-                                    <span th:if="${inc.denunciante.rol == 'VOLUNTARIO'}" class="adm-badge adm-badge--dis" style="background-color: #FAF5FF; color: #6B21A8;">Contra Beneficiario</span>
+                                    <span th:if="${inc.denunciante != null and inc.denunciante.rol == 'DISCAPACITADO'}" class="adm-badge adm-badge--vol" style="background-color: #E0F2FE; color: #0369A1;">Contra Voluntario</span>
+                                    <span th:if="${inc.denunciante != null and inc.denunciante.rol == 'VOLUNTARIO'}" class="adm-badge adm-badge--dis" style="background-color: #FAF5FF; color: #6B21A8;">Contra Beneficiario</span>
                                     
                                     <!-- Badges de estado de incidencia -->
                                     <span th:if="${inc.estado == 'PENDIENTE'}" class="adm-badge" style="background-color: #FEF3C7; color: #D97706; border: 1px solid #FDE68A;">PENDIENTE</span>
@@ -384,7 +384,7 @@
                         </div>
 
                         <!-- 1. CASO A: REPORTE CONTRA EL VOLUNTARIO (Denunciante es DISCAPACITADO) -->
-                        <div th:if="${inc.denunciante.rol == 'DISCAPACITADO'}" 
+                        <div th:if="${inc.denunciante != null and inc.denunciante.rol == 'DISCAPACITADO'}" 
                              style="background: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 1.75rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
                             
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
@@ -415,7 +415,7 @@
                             <div class="sanction-history-box" th:if="${inc.denunciado != null}">
                                 <div class="sanction-history-title">Historial de Sanciones del Voluntario</div>
                                 
-                                <th:block th:with="volSanciones=${sancionesPorUsuario[inc.denunciado.id]}">
+                                <th:block th:with="volSanciones=${sancionesPorUsuario.get(inc.denunciado.id)}">
                                     <div th:if="${volSanciones == null or #lists.isEmpty(volSanciones)}" style="font-size: 0.85rem; color: #475569; font-weight: 500;">
                                         ✅ Sin advertencias previas (Cuenta limpia).
                                     </div>
@@ -484,7 +484,7 @@
                         </div>
 
                         <!-- 2. CASO B: REPORTE CONTRA EL BENEFICIARIO (Denunciante es VOLUNTARIO) -->
-                        <div th:if="${inc.denunciante.rol == 'VOLUNTARIO'}" 
+                        <div th:if="${inc.denunciante != null and inc.denunciante.rol == 'VOLUNTARIO'}" 
                              style="background: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 1.75rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
                             
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
@@ -515,7 +515,7 @@
                             <div class="sanction-history-box" th:if="${inc.denunciado != null}">
                                 <div class="sanction-history-title">Historial de Sanciones del Beneficiario</div>
                                 
-                                <th:block th:with="discSanciones=${sancionesPorUsuario[inc.denunciado.id]}">
+                                <th:block th:with="discSanciones=${sancionesPorUsuario.get(inc.denunciado.id)}">
                                     <div th:if="${discSanciones == null or #lists.isEmpty(discSanciones)}" style="font-size: 0.85rem; color: #475569; font-weight: 500;">
                                         ✅ Sin advertencias previas (Cuenta limpia).
                                     </div>
@@ -622,8 +622,8 @@
                                 <td style="padding: 0.875rem 1rem; color: #475569;" th:text="${res.denunciante != null ? res.denunciante.nombreCompleto : '—'}">—</td>
                                 <td style="padding: 0.875rem 1rem; color: #475569;" th:text="${res.denunciado != null ? res.denunciado.nombreCompleto : '—'}">—</td>
                                 <td style="padding: 0.875rem 1rem;">
-                                    <span th:if="${res.denunciante.rol == 'DISCAPACITADO'}" style="background: #E0F2FE; color: #0369A1; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">vs Voluntario</span>
-                                    <span th:if="${res.denunciante.rol == 'VOLUNTARIO'}" style="background: #FAF5FF; color: #6B21A8; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">vs Beneficiario</span>
+                                    <span th:if="${res.denunciante != null and res.denunciante.rol == 'DISCAPACITADO'}" style="background: #E0F2FE; color: #0369A1; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">vs Voluntario</span>
+                                    <span th:if="${res.denunciante != null and res.denunciante.rol == 'VOLUNTARIO'}" style="background: #FAF5FF; color: #6B21A8; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">vs Beneficiario</span>
                                 </td>
                                 <td style="padding: 0.875rem 1rem; color: #64748B;" th:text="${#temporals.format(res.fechaCreacion, 'dd/MM/yyyy HH:mm')}">—</td>
                                 <td style="padding: 0.875rem 1rem;">
