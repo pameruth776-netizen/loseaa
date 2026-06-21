@@ -4,7 +4,11 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.ArrayList;
 
 @Data
 @NoArgsConstructor
@@ -33,17 +37,10 @@ public class HistorialAyuda {
     @Column(name = "comentario_voluntario", columnDefinition = "TEXT")
     private String comentarioVoluntario;
 
-    @Column(name = "incidencia_discapacitado", columnDefinition = "TEXT")
-    private String incidenciaDiscapacitado;
-
-    @Column(name = "evidencia_discapacitado_url")
-    private String evidenciaDiscapacitadoUrl;
-
-    @Column(name = "incidencia_voluntario", columnDefinition = "TEXT")
-    private String incidenciaVoluntario;
-
-    @Column(name = "evidencia_voluntario_url")
-    private String evidenciaVoluntarioUrl;
+    @OneToMany(mappedBy = "historialAyuda", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<Incidencia> incidencias = new ArrayList<>();
 
     public HistorialAyuda(SolicitudAyuda solicitud) {
         this.solicitud = solicitud;

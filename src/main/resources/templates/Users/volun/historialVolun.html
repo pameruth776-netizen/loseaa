@@ -130,6 +130,21 @@
                 color: #059669;
                 border: 1px solid rgba(16, 185, 129, 0.25);
             }
+            .badge-pendiente {
+                background: rgba(245, 158, 11, 0.15);
+                color: #d97706;
+                border: 1px solid rgba(245, 158, 11, 0.25);
+            }
+            .badge-revision {
+                background: rgba(59, 130, 246, 0.15);
+                color: #2563eb;
+                border: 1px solid rgba(59, 130, 246, 0.25);
+            }
+            .badge-resuelto {
+                background: rgba(16, 185, 129, 0.15);
+                color: #059669;
+                border: 1px solid rgba(16, 185, 129, 0.25);
+            }
             
             /* User Info Layout */
             .user-cell {
@@ -545,9 +560,20 @@
                                 <span th:if="${h.calificacion == 'MEDALLA_COBRE'}" class="badge-status" style="background: rgba(254, 215, 170, 0.3); color: #c2410c; border: 1px solid rgba(254, 215, 170, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de cobre 🥉</span>
                             </td>
                             <td data-label="Acciones">
-                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                                     <button class="btn-action btn-green" th:onclick="'abrirModalComentar(' + ${h.id} + ')'">Comentar</button>
-                                    <button class="btn-action btn-red" th:onclick="'abrirModalIncidencia(' + ${h.id} + ')'">Incidencia</button>
+                                    
+                                    <!-- Comprobar si ya existe incidencia reportada por el voluntario actual en este historial -->
+                                    <th:block th:with="myIncidents=${h.incidencias.?[denunciante.id == session.usuario.id]}">
+                                        <button th:if="${myIncidents.isEmpty()}" 
+                                                class="btn-action btn-red" 
+                                                th:onclick="'abrirModalIncidencia(' + ${h.id} + ')'">Incidencia</button>
+                                        
+                                        <span th:if="${!myIncidents.isEmpty()}" 
+                                              class="badge-status"
+                                              th:classappend="${myIncidents[0].estado == 'PENDIENTE' ? ' badge-pendiente' : (myIncidents[0].estado == 'EN_REVISION' ? ' badge-revision' : ' badge-resuelto')}"
+                                              th:text="${myIncidents[0].estado}">PENDIENTE</span>
+                                    </th:block>
                                 </div>
                             </td>
                         </tr>
@@ -581,6 +607,18 @@
                 <button class="btn-modal btn-modal-cancel" onclick="cerrarModalIncidencia()">Cancelar</button>
                 <button class="btn-modal btn-modal-danger" onclick="enviarIncidencia()">Reportar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Éxito Incidencia -->
+    <div id="modalExitoIncidencia" class="modal-overlay">
+        <div class="modal-box" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 16px;">✉️</div>
+            <h3 class="modal-title">¡Incidencia Reportada!</h3>
+            <p style="color: #475569; font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px;">
+                Su reporte ha sido recibido. Los detalles de la solución de la incidencia se le enviarán por correo electrónico una vez sea resuelta.
+            </p>
+            <button class="btn-modal btn-modal-submit" onclick="cerrarModalExitoIncidencia()" style="width: 100%;">Entendido</button>
         </div>
     </div>
 
@@ -661,8 +699,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    mostrarToast("Incidencia registrada con éxito.");
                     cerrarModalIncidencia();
+                    abrirModalExitoIncidencia();
                 } else {
                     mostrarToast("Error: " + data.error);
                 }
@@ -671,6 +709,15 @@
                 console.error(err);
                 mostrarToast("Error de red.");
             });
+        }
+
+        function abrirModalExitoIncidencia() {
+            document.getElementById('modalExitoIncidencia').classList.add('active');
+        }
+
+        function cerrarModalExitoIncidencia() {
+            document.getElementById('modalExitoIncidencia').classList.remove('active');
+            window.location.reload();
         }
 
         // Toast de notificación simple

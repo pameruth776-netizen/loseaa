@@ -4,8 +4,10 @@ import com.redsolidaria.enjambre.dto.AdminDTO;
 import com.redsolidaria.enjambre.model.Administrador;
 import com.redsolidaria.enjambre.model.Usuario;
 import com.redsolidaria.enjambre.model.HistorialAyuda;
+import com.redsolidaria.enjambre.model.Incidencia;
 import com.redsolidaria.enjambre.model.Sancion;
 import com.redsolidaria.enjambre.repository.HistorialAyudaRepository;
+import com.redsolidaria.enjambre.repository.IncidenciaRepository;
 import com.redsolidaria.enjambre.repository.SancionRepository;
 import com.redsolidaria.enjambre.repository.AdministradorRepository;
 import com.redsolidaria.enjambre.service.UsuarioService;
@@ -35,6 +37,9 @@ public class AdminController {
 
     @Autowired
     private HistorialAyudaRepository historialAyudaRepository;
+
+    @Autowired
+    private IncidenciaRepository incidenciaRepository;
 
     @Autowired
     private SancionRepository sancionRepository;
@@ -196,7 +201,7 @@ public class AdminController {
     }
 
     // ========== GESTIÓN DE INCIDENCIAS ==========
-
+    
     @GetMapping("/incidencias")
     public String incidencias(Model model, HttpSession session) {
         Usuario admin = (Usuario) session.getAttribute("usuario");
@@ -204,17 +209,24 @@ public class AdminController {
             return "redirect:/login";
         }
 
-        List<HistorialAyuda> incidencias = historialAyudaRepository.findIncidenciasReportadas();
+        List<Incidencia> incidencias = incidenciaRepository.findAllByOrderByFechaCreacionDesc();
+        // Transición automática a EN_REVISION al ser visualizadas por el admin
+        for (Incidencia inc : incidencias) {
+            if ("PENDIENTE".equals(inc.getEstado())) {
+                inc.setEstado("EN_REVISION");
+                incidenciaRepository.save(inc);
+            }
+        }
         model.addAttribute("incidencias", incidencias);
 
         Map<Long, List<Sancion>> sancionesPorUsuario = new HashMap<>();
-        for (HistorialAyuda h : incidencias) {
-            if (h.getSolicitud().getVoluntarioAceptado() != null) {
-                Long volId = h.getSolicitud().getVoluntarioAceptado().getId();
+        for (Incidencia h : incidencias) {
+            if (h.getDenunciado() != null) {
+                Long volId = h.getDenunciado().getId();
                 sancionesPorUsuario.putIfAbsent(volId, sancionRepository.findByUsuario_Id(volId));
             }
-            if (h.getSolicitud().getDiscapacitado() != null) {
-                Long discId = h.getSolicitud().getDiscapacitado().getId();
+            if (h.getDenunciante() != null) {
+                Long discId = h.getDenunciante().getId();
                 sancionesPorUsuario.putIfAbsent(discId, sancionRepository.findByUsuario_Id(discId));
             }
         }
@@ -251,19 +263,43 @@ public class AdminController {
             Sancion sancion = new Sancion(reportedUser, historial, tipoSancion, motivo, administrador);
             sancionRepository.save(sancion);
 
+            // Marcar las incidencias correspondientes como RESUELTO y notificar por correo al denunciante
+            List<Incidencia> incidenciasAsociadas = incidenciaRepository.findByHistorialAyuda_IdAndDenunciado_Id(historialId, reportedUserId);
+            String resolucionDetalles = "";
+            if ("AVISO_1".equals(tipoSancion)) {
+                resolucionDetalles = "Se ha aplicado un Primer Aviso de Advertencia al usuario reportado.";
+            } else if ("AVISO_2".equals(tipoSancion)) {
+                resolucionDetalles = "Se ha aplicado un Segundo Aviso de Advertencia al usuario reportado.";
+            } else if ("BLOQUEO".equals(tipoSancion)) {
+                resolucionDetalles = "Se ha inhabilitado permanentemente la cuenta del usuario reportado por el siguiente motivo: " + motivo;
+            }
+
+            for (Incidencia inc : incidenciasAsociadas) {
+                inc.setEstado("RESUELTO");
+                incidenciaRepository.save(inc);
+                if (inc.getDenunciante() != null) {
+                    emailService.enviarResolucionIncidencia(
+                        inc.getDenunciante().getEmail(),
+                        inc.getDenunciante().getNombreCompleto(),
+                        inc.getDenunciado().getNombreCompleto(),
+                        resolucionDetalles
+                    );
+                }
+            }
+
             boolean isVoluntario = "VOLUNTARIO".equals(reportedUser.getRol());
 
             if ("AVISO_1".equals(tipoSancion)) {
                 emailService.enviarPrimerAvisoIncidencia(reportedUser.getEmail(), isVoluntario);
-                redirectAttributes.addFlashAttribute("success", "✅ Primer aviso registrado y enviado por correo a: " + reportedUser.getEmail());
+                redirectAttributes.addFlashAttribute("success", "✅ Primer aviso registrado, incidencia resuelta y notificaciones enviadas por correo");
             } else if ("AVISO_2".equals(tipoSancion)) {
                 emailService.enviarSegundoAvisoIncidencia(reportedUser.getEmail(), isVoluntario);
-                redirectAttributes.addFlashAttribute("success", "✅ Segundo aviso registrado y enviado por correo a: " + reportedUser.getEmail());
+                redirectAttributes.addFlashAttribute("success", "✅ Segundo aviso registrado, incidencia resuelta y notificaciones enviadas por correo");
             } else if ("BLOQUEO".equals(tipoSancion)) {
                 reportedUser.setEstado("BLOQUEADO");
                 usuarioService.guardarUsuario(reportedUser);
                 emailService.enviarBloqueoCuentaIncidencia(reportedUser.getEmail(), isVoluntario, motivo);
-                redirectAttributes.addFlashAttribute("success", "🚫 Cuenta bloqueada permanentemente y notificación enviada a: " + reportedUser.getEmail());
+                redirectAttributes.addFlashAttribute("success", "🚫 Cuenta bloqueada permanentemente, incidencia resuelta y notificaciones enviadas por correo");
             }
 
         } catch (Exception e) {

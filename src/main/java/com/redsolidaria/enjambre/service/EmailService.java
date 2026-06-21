@@ -169,4 +169,14 @@ public class EmailService {
                         "Saludos,\nEquipo Red Solidaria UTP";
         sendEmailViaBrevo(emailDestino, "❌ Tu cuenta ha sido inhabilitada - Red Solidaria UTP", text);
     }
+
+    @Async
+    public void enviarResolucionIncidencia(String emailDestino, String denuncianteNombre, String denunciadoNombre, String resolucionDetalles) {
+        String text = "Hola " + denuncianteNombre + ",\n\n" +
+                        "Te escribimos para informarte que el reporte de incidencia que presentaste contra " + denunciadoNombre + " ha sido solucionado por el equipo de administración.\n\n" +
+                        "Detalle de la resolución:\n" + (resolucionDetalles != null ? resolucionDetalles : "Se han tomado las medidas administrativas correspondientes.") + "\n\n" +
+                        "Gracias por ayudarnos a mantener segura y respetuosa nuestra comunidad.\n\n" +
+                        "Saludos,\nEquipo Red Solidaria UTP";
+        sendEmailViaBrevo(emailDestino, "✅ Reporte de Incidencia Resuelto - Red Solidaria UTP", text);
+    }
 }

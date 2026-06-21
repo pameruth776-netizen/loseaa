@@ -26,6 +26,7 @@ public class AyudaService {
     private final UsuarioService usuarioService;
     private final AyudaConnectionRegistry connectionRegistry;
     private final HistorialAyudaRepository historialAyudaRepository;
+    private final IncidenciaRepository incidenciaRepository;
 
     private final ObjectMapper objectMapper;
 
@@ -38,6 +39,7 @@ public class AyudaService {
             UsuarioService usuarioService,
             AyudaConnectionRegistry connectionRegistry,
             HistorialAyudaRepository historialAyudaRepository,
+            IncidenciaRepository incidenciaRepository,
             ObjectMapper objectMapper
     ) {
         this.ubicacionUsuarioRepository = ubicacionUsuarioRepository;
@@ -48,6 +50,7 @@ public class AyudaService {
         this.usuarioService = usuarioService;
         this.connectionRegistry = connectionRegistry;
         this.historialAyudaRepository = historialAyudaRepository;
+        this.incidenciaRepository = incidenciaRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -519,14 +522,19 @@ public class AyudaService {
             throw new IllegalArgumentException("No estás autorizado para reportar incidencias en esta ayuda");
         }
 
-        historial.setIncidenciaDiscapacitado(descripcion);
+        Incidencia incidencia = new Incidencia();
+        incidencia.setHistorialAyuda(historial);
+        incidencia.setDenunciante(historial.getSolicitud().getDiscapacitado());
+        incidencia.setDenunciado(historial.getSolicitud().getVoluntarioAceptado());
+        incidencia.setDescripcion(descripcion);
+        incidencia.setEstado("PENDIENTE");
 
         if (archivo != null && !archivo.isEmpty()) {
             String path = guardarArchivoIncidencia(archivo, "incidencia_disca");
-            historial.setEvidenciaDiscapacitadoUrl(path);
+            incidencia.setEvidenciaUrl(path);
         }
 
-        historialAyudaRepository.save(historial);
+        incidenciaRepository.save(incidencia);
     }
 
     public void guardarIncidenciaVoluntario(Long historialId, String descripcion, MultipartFile archivo, Long usuarioId) throws java.io.IOException {
@@ -538,14 +546,19 @@ public class AyudaService {
             throw new IllegalArgumentException("No estás autorizado para reportar incidencias en esta ayuda");
         }
 
-        historial.setIncidenciaVoluntario(descripcion);
+        Incidencia incidencia = new Incidencia();
+        incidencia.setHistorialAyuda(historial);
+        incidencia.setDenunciante(historial.getSolicitud().getVoluntarioAceptado());
+        incidencia.setDenunciado(historial.getSolicitud().getDiscapacitado());
+        incidencia.setDescripcion(descripcion);
+        incidencia.setEstado("PENDIENTE");
 
         if (archivo != null && !archivo.isEmpty()) {
             String path = guardarArchivoIncidencia(archivo, "incidencia_vol");
-            historial.setEvidenciaVoluntarioUrl(path);
+            incidencia.setEvidenciaUrl(path);
         }
 
-        historialAyudaRepository.save(historial);
+        incidenciaRepository.save(incidencia);
     }
 
     private String guardarArchivoIncidencia(MultipartFile file, String prefijo) throws java.io.IOException {
