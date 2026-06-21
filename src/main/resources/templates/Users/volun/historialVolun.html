@@ -573,14 +573,14 @@
                                         <!-- Botón de incidencia activo (si no ha reportado) -->
                                         <button th:if="${myIncidents.isEmpty()}" 
                                                 class="btn-action btn-red" 
-                                                th:onclick="'abrirModalIncidencia(' + ${h.id} + ')'">Incidencia</button>
+                                                th:onclick="'abrirModalIncidencia(' + ${h.id} + ')'">📝 Reportar incidencia</button>
                                         
-                                        <!-- Botón de incidencia bloqueado (si ya reportó) -->
+                                        <!-- Botón de incidencia bloqueado (si ya reportó) y muestra estado -->
                                         <button th:if="${!myIncidents.isEmpty()}" 
                                                 class="badge-status" 
                                                 disabled="disabled"
                                                 th:classappend="${myIncidents[0].estado == 'PENDIENTE' ? 'badge-pendiente' : (myIncidents[0].estado == 'EN_REVISION' ? 'badge-revision' : 'badge-resuelto')}"
-                                                th:text="${myIncidents[0].estado == 'PENDIENTE' ? 'PENDIENTE' : (myIncidents[0].estado == 'EN_REVISION' ? 'EN REVISIÓN' : 'RESUELTO')}">PENDIENTE</button>
+                                                th:text="${myIncidents[0].estado == 'PENDIENTE' ? '⏳ Pendiente' : (myIncidents[0].estado == 'EN_REVISION' ? '🔍 En revisión' : '✅ Resuelto')}">⏳ Pendiente</button>
                                     </th:block>
                                 </div>
                             </td>

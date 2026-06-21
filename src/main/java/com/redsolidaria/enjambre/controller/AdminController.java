@@ -278,9 +278,8 @@ public class AdminController {
             HistorialAyuda historial = historialAyudaRepository.findById(historialId)
                 .orElseThrow(() -> new IllegalArgumentException("Historial no encontrado"));
 
-            // 3. Buscar administrador — con orElse(null) para no bloquear la operación
-            //    si hay algún problema de JOIN entre tablas usuarios/administradores
-            Administrador administrador = administradorRepository.findById(admin.getId()).orElse(null);
+            // 3. Obtener el administrador directamente desde la sesión
+            Usuario administrador = (Usuario) session.getAttribute("usuario");
 
             // 4. Guardar la sanción
             Sancion sancion = new Sancion(reportedUser, historial, tipoSancion, motivo, administrador);

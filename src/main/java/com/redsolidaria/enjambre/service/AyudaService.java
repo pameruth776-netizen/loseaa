@@ -522,6 +522,11 @@ public class AyudaService {
             throw new IllegalArgumentException("No estás autorizado para reportar incidencias en esta ayuda");
         }
 
+        boolean yaReporto = incidenciaRepository.existsByHistorialAyuda_IdAndDenunciante_Id(historialId, usuarioId);
+        if (yaReporto) {
+            throw new IllegalArgumentException("Ya has reportado una incidencia para esta ayuda");
+        }
+
         Incidencia incidencia = new Incidencia();
         incidencia.setHistorialAyuda(historial);
         incidencia.setDenunciante(historial.getSolicitud().getDiscapacitado());
@@ -544,6 +549,11 @@ public class AyudaService {
         if (historial.getSolicitud().getVoluntarioAceptado() == null ||
                 !usuarioId.equals(historial.getSolicitud().getVoluntarioAceptado().getId())) {
             throw new IllegalArgumentException("No estás autorizado para reportar incidencias en esta ayuda");
+        }
+
+        boolean yaReporto = incidenciaRepository.existsByHistorialAyuda_IdAndDenunciante_Id(historialId, usuarioId);
+        if (yaReporto) {
+            throw new IllegalArgumentException("Ya has reportado una incidencia para esta ayuda");
         }
 
         Incidencia incidencia = new Incidencia();

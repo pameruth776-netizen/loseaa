@@ -11,5 +11,6 @@ public interface IncidenciaRepository extends JpaRepository<Incidencia, Long> {
     List<Incidencia> findByEstadoNotOrderByFechaCreacionDesc(String estado);
     List<Incidencia> findByHistorialAyuda_IdAndDenunciado_Id(Long historialAyudaId, Long denunciadoId);
     List<Incidencia> findByHistorialAyuda_Id(Long historialAyudaId);
+    boolean existsByHistorialAyuda_IdAndDenunciante_Id(Long historialAyudaId, Long denuncianteId);
 }
 

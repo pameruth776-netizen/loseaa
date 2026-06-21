@@ -34,9 +34,9 @@ public class Sancion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "administrador_id")
-    private Administrador administrador;
+    private Usuario administrador;
 
-    public Sancion(Usuario usuario, HistorialAyuda historialAyuda, String tipoSancion, String motivo, Administrador administrador) {
+    public Sancion(Usuario usuario, HistorialAyuda historialAyuda, String tipoSancion, String motivo, Usuario administrador) {
         this.usuario = usuario;
         this.historialAyuda = historialAyuda;
         this.tipoSancion = tipoSancion;
