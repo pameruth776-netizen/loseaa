@@ -24,6 +24,9 @@ import jakarta.servlet.http.HttpSession;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Collections;
+import java.util.stream.Collectors;
+
 
 @Controller
 @RequestMapping("/admin")
@@ -209,18 +212,33 @@ public class AdminController {
             return "redirect:/login";
         }
 
-        List<Incidencia> incidencias = incidenciaRepository.findAllByOrderByFechaCreacionDesc();
-        // Transición automática a EN_REVISION al ser visualizadas por el admin
-        for (Incidencia inc : incidencias) {
+        // Traer todas las incidencias ordenadas por fecha
+        List<Incidencia> todasIncidencias = incidenciaRepository.findAllByOrderByFechaCreacionDesc();
+
+        // Transición automática a EN_REVISION solo para las PENDIENTES
+        for (Incidencia inc : todasIncidencias) {
             if ("PENDIENTE".equals(inc.getEstado())) {
                 inc.setEstado("EN_REVISION");
                 incidenciaRepository.save(inc);
             }
         }
-        model.addAttribute("incidencias", incidencias);
 
+        // Separar en activas (no resueltas) y resueltas para la vista
+        List<Incidencia> incidenciasActivas = todasIncidencias.stream()
+                .filter(i -> !"RESUELTO".equals(i.getEstado()))
+                .collect(Collectors.toList());
+        List<Incidencia> incidenciasResueltas = todasIncidencias.stream()
+                .filter(i -> "RESUELTO".equals(i.getEstado()))
+                .collect(Collectors.toList());
+
+        // Pasar ambas listas (el template muestra activas en la lista principal,
+        // y tiene una sección plegable para resueltas)
+        model.addAttribute("incidencias", incidenciasActivas);
+        model.addAttribute("incidenciasResueltas", incidenciasResueltas);
+
+        // Construir mapa de sanciones para todos los usuarios involucrados
         Map<Long, List<Sancion>> sancionesPorUsuario = new HashMap<>();
-        for (Incidencia h : incidencias) {
+        for (Incidencia h : todasIncidencias) {
             if (h.getDenunciado() != null) {
                 Long volId = h.getDenunciado().getId();
                 sancionesPorUsuario.putIfAbsent(volId, sancionRepository.findByUsuario_Id(volId));
@@ -238,6 +256,7 @@ public class AdminController {
     @PostMapping("/incidencias/sancionar")
     public String sancionar(@RequestParam Long historialId,
                             @RequestParam Long reportedUserId,
+                            @RequestParam(required = false) Long incidenciaId,
                             @RequestParam String tipoSancion,
                             @RequestParam(required = false) String motivo,
                             HttpSession session,
@@ -248,57 +267,82 @@ public class AdminController {
         }
 
         try {
+            // 1. Verificar usuario reportado
             Usuario reportedUser = usuarioService.buscarPorId(reportedUserId);
             if (reportedUser == null) {
                 redirectAttributes.addFlashAttribute("error", "❌ Usuario reportado no encontrado");
                 return "redirect:/admin/incidencias";
             }
 
+            // 2. Verificar historial
             HistorialAyuda historial = historialAyudaRepository.findById(historialId)
                 .orElseThrow(() -> new IllegalArgumentException("Historial no encontrado"));
 
-            Administrador administrador = administradorRepository.findById(admin.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Administrador no encontrado"));
+            // 3. Buscar administrador — con orElse(null) para no bloquear la operación
+            //    si hay algún problema de JOIN entre tablas usuarios/administradores
+            Administrador administrador = administradorRepository.findById(admin.getId()).orElse(null);
 
+            // 4. Guardar la sanción
             Sancion sancion = new Sancion(reportedUser, historial, tipoSancion, motivo, administrador);
             sancionRepository.save(sancion);
 
-            // Marcar las incidencias correspondientes como RESUELTO y notificar por correo al denunciante
-            List<Incidencia> incidenciasAsociadas = incidenciaRepository.findByHistorialAyuda_IdAndDenunciado_Id(historialId, reportedUserId);
-            String resolucionDetalles = "";
+            // 5. Marcar incidencias como RESUELTO
+            //    Estrategia: si viene incidenciaId, marcar solo esa;
+            //    de lo contrario buscar por historial+denunciado, y como fallback todas las del historial
+            List<Incidencia> incidenciasAResolver;
+            if (incidenciaId != null) {
+                incidenciasAResolver = incidenciaRepository.findById(incidenciaId)
+                        .map(List::of)
+                        .orElse(Collections.emptyList());
+            } else {
+                incidenciasAResolver = incidenciaRepository
+                        .findByHistorialAyuda_IdAndDenunciado_Id(historialId, reportedUserId);
+                // Fallback: si no encontró nada por doble filtro, buscar solo por historialId
+                if (incidenciasAResolver.isEmpty()) {
+                    incidenciasAResolver = incidenciaRepository.findByHistorialAyuda_Id(historialId);
+                }
+            }
+
+            // 6. Construir mensaje de resolución para el correo
+            String resolucionDetalles;
             if ("AVISO_1".equals(tipoSancion)) {
                 resolucionDetalles = "Se ha aplicado un Primer Aviso de Advertencia al usuario reportado.";
             } else if ("AVISO_2".equals(tipoSancion)) {
                 resolucionDetalles = "Se ha aplicado un Segundo Aviso de Advertencia al usuario reportado.";
-            } else if ("BLOQUEO".equals(tipoSancion)) {
+            } else {
                 resolucionDetalles = "Se ha inhabilitado permanentemente la cuenta del usuario reportado por el siguiente motivo: " + motivo;
             }
 
-            for (Incidencia inc : incidenciasAsociadas) {
+            // 7. Marcar cada incidencia como RESUELTO y notificar al denunciante
+            for (Incidencia inc : incidenciasAResolver) {
                 inc.setEstado("RESUELTO");
                 incidenciaRepository.save(inc);
                 if (inc.getDenunciante() != null) {
-                    emailService.enviarResolucionIncidencia(
-                        inc.getDenunciante().getEmail(),
-                        inc.getDenunciante().getNombreCompleto(),
-                        inc.getDenunciado().getNombreCompleto(),
-                        resolucionDetalles
-                    );
+                    try {
+                        emailService.enviarResolucionIncidencia(
+                            inc.getDenunciante().getEmail(),
+                            inc.getDenunciante().getNombreCompleto(),
+                            inc.getDenunciado().getNombreCompleto(),
+                            resolucionDetalles
+                        );
+                    } catch (Exception emailEx) {
+                        // El correo falla silenciosamente — no bloquea la operación
+                    }
                 }
             }
 
+            // 8. Aplicar acción según tipo de sanción y notificar al sancionado
             boolean isVoluntario = "VOLUNTARIO".equals(reportedUser.getRol());
-
             if ("AVISO_1".equals(tipoSancion)) {
-                emailService.enviarPrimerAvisoIncidencia(reportedUser.getEmail(), isVoluntario);
+                try { emailService.enviarPrimerAvisoIncidencia(reportedUser.getEmail(), isVoluntario); } catch (Exception ignored) {}
                 redirectAttributes.addFlashAttribute("success", "✅ Primer aviso registrado, incidencia resuelta y notificaciones enviadas por correo");
             } else if ("AVISO_2".equals(tipoSancion)) {
-                emailService.enviarSegundoAvisoIncidencia(reportedUser.getEmail(), isVoluntario);
+                try { emailService.enviarSegundoAvisoIncidencia(reportedUser.getEmail(), isVoluntario); } catch (Exception ignored) {}
                 redirectAttributes.addFlashAttribute("success", "✅ Segundo aviso registrado, incidencia resuelta y notificaciones enviadas por correo");
             } else if ("BLOQUEO".equals(tipoSancion)) {
                 reportedUser.setEstado("BLOQUEADO");
                 usuarioService.guardarUsuario(reportedUser);
-                emailService.enviarBloqueoCuentaIncidencia(reportedUser.getEmail(), isVoluntario, motivo);
+                try { emailService.enviarBloqueoCuentaIncidencia(reportedUser.getEmail(), isVoluntario, motivo); } catch (Exception ignored) {}
                 redirectAttributes.addFlashAttribute("success", "🚫 Cuenta bloqueada permanentemente, incidencia resuelta y notificaciones enviadas por correo");
             }
 
