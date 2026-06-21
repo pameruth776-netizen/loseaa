@@ -3,10 +3,13 @@ package com.redsolidaria.enjambre.controller;
 import com.redsolidaria.enjambre.dto.PreguntaDTO;
 import com.redsolidaria.enjambre.dto.RespuestasTestDTO;
 import com.redsolidaria.enjambre.model.Curso;
+import com.redsolidaria.enjambre.model.HistorialAyuda;
+import com.redsolidaria.enjambre.model.Incidencia;
 import com.redsolidaria.enjambre.model.Pregunta;
 import com.redsolidaria.enjambre.model.ProgresoCurso;
 import com.redsolidaria.enjambre.model.Usuario;
 import com.redsolidaria.enjambre.repository.HistorialAyudaRepository;
+import com.redsolidaria.enjambre.repository.IncidenciaRepository;
 import com.redsolidaria.enjambre.service.CursoService;
 import com.redsolidaria.enjambre.service.ProgresoService;
 import jakarta.servlet.http.HttpSession;
@@ -27,6 +30,9 @@ public class VoluntarioController {
 
     @Autowired
     private HistorialAyudaRepository historialAyudaRepository;
+
+    @Autowired
+    private IncidenciaRepository incidenciaRepository;
 
     @Autowired
     private CursoService cursoService;
@@ -104,8 +110,20 @@ public class VoluntarioController {
     public String historial(HttpSession session, Model model) {
         Usuario usuario = (Usuario) session.getAttribute("usuario");
         if (usuario != null) {
-            model.addAttribute("historial", 
-                historialAyudaRepository.findBySolicitud_VoluntarioAceptado_IdOrderByFechaFinalizacionDesc(usuario.getId()));
+            List<HistorialAyuda> historiales =
+                historialAyudaRepository.findBySolicitud_VoluntarioAceptado_IdOrderByFechaFinalizacionDesc(usuario.getId());
+            model.addAttribute("historial", historiales);
+
+            // Para cada historial, buscar si el voluntario ya reportó una incidencia.
+            // Guardamos: historialId -> incidencia (o null si no reportó).
+            // Así el template evita acceder a colecciones LAZY.
+            Map<Long, Incidencia> miIncidenciaMap = new java.util.HashMap<>();
+            for (HistorialAyuda h : historiales) {
+                List<Incidencia> encontradas = incidenciaRepository
+                    .findByHistorialAyuda_IdAndDenunciante_Id(h.getId(), usuario.getId());
+                miIncidenciaMap.put(h.getId(), encontradas.isEmpty() ? null : encontradas.get(0));
+            }
+            model.addAttribute("miIncidenciaMap", miIncidenciaMap);
         }
         return "Users/volun/historialVolun";
     }

@@ -568,19 +568,19 @@
                                 <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                                     <button class="btn-action btn-green" th:onclick="'abrirModalComentar(' + ${h.id} + ')'">Comentar</button>
                                     
-                                    <!-- Comprobar si ya existe incidencia reportada por el voluntario actual en este historial -->
-                                    <th:block th:with="myIncidents=${h.incidencias.?[denunciante.id == session.usuario.id]}">
-                                        <!-- Botón de incidencia activo (si no ha reportado) -->
-                                        <button th:if="${myIncidents.isEmpty()}" 
-                                                class="btn-action btn-red" 
+                                    <!-- Botón de reporte: usa miIncidenciaMap precalculado en el controller (evita LAZY) -->
+                                    <th:block th:with="miInc=${miIncidenciaMap != null ? miIncidenciaMap[h.id] : null}">
+                                        <!-- No ha reportado aún: mostrar botón activo -->
+                                        <button th:if="${miInc == null}"
+                                                class="btn-action btn-red"
                                                 th:onclick="'abrirModalIncidencia(' + ${h.id} + ')'">📝 Reportar incidencia</button>
-                                        
-                                        <!-- Botón de incidencia bloqueado (si ya reportó) y muestra estado -->
-                                        <button th:if="${!myIncidents.isEmpty()}" 
-                                                class="badge-status" 
+
+                                        <!-- Ya reportó: mostrar estado como badge deshabilitado -->
+                                        <button th:if="${miInc != null}"
+                                                class="badge-status"
                                                 disabled="disabled"
-                                                th:classappend="${myIncidents[0].estado == 'PENDIENTE' ? 'badge-pendiente' : (myIncidents[0].estado == 'EN_REVISION' ? 'badge-revision' : 'badge-resuelto')}"
-                                                th:text="${myIncidents[0].estado == 'PENDIENTE' ? '⏳ Pendiente' : (myIncidents[0].estado == 'EN_REVISION' ? '🔍 En revisión' : '✅ Resuelto')}">⏳ Pendiente</button>
+                                                th:classappend="${miInc.estado == 'PENDIENTE' ? 'badge-pendiente' : (miInc.estado == 'EN_REVISION' ? 'badge-revision' : 'badge-resuelto')}"
+                                                th:text="${miInc.estado == 'PENDIENTE' ? '⏳ Pendiente' : (miInc.estado == 'EN_REVISION' ? '🔍 En revisión' : '✅ Resuelto')}">⏳ Pendiente</button>
                                     </th:block>
                                 </div>
                             </td>
