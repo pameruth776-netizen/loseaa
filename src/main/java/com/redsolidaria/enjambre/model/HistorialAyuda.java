@@ -28,23 +28,29 @@ public class HistorialAyuda {
     @Column(name = "fecha_finalizacion", nullable = false)
     private LocalDateTime fechaFinalizacion = LocalDateTime.now();
 
-    @Column(name = "calificacion", nullable = false)
-    private String calificacion = "SIN_CALIFICAR";
+    // Calificación asignada por el discapacitado: "Oro", "Plata", "Cobre" o null
+    @Column(name = "calificacion")
+    private String calificacion;
 
+    // Comentario del discapacitado hacia el voluntario
     @Column(name = "comentario_discapacitado", columnDefinition = "TEXT")
     private String comentarioDiscapacitado;
 
+    // Comentario del voluntario hacia el discapacitado
     @Column(name = "comentario_voluntario", columnDefinition = "TEXT")
     private String comentarioVoluntario;
 
-    @OneToMany(mappedBy = "historialAyuda", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private List<Incidencia> incidencias = new ArrayList<>();
+    // Flags para saber si ya comentaron (evitar doble comentario)
+    @Column(name = "comentado_discapacitado", nullable = false)
+    private boolean comentadoDiscapacitado = false;
+
+    @Column(name = "comentado_voluntario", nullable = false)
+    private boolean comentadoVoluntario = false;
 
     public HistorialAyuda(SolicitudAyuda solicitud) {
         this.solicitud = solicitud;
         this.fechaFinalizacion = LocalDateTime.now();
-        this.calificacion = "SIN_CALIFICAR";
+        this.comentadoDiscapacitado = false;
+        this.comentadoVoluntario = false;
     }
 }

@@ -26,7 +26,7 @@ public class AyudaService {
     private final UsuarioService usuarioService;
     private final AyudaConnectionRegistry connectionRegistry;
     private final HistorialAyudaRepository historialAyudaRepository;
-    private final IncidenciaRepository incidenciaRepository;
+    private final EmailService emailService;
 
     private final ObjectMapper objectMapper;
 
@@ -39,7 +39,7 @@ public class AyudaService {
             UsuarioService usuarioService,
             AyudaConnectionRegistry connectionRegistry,
             HistorialAyudaRepository historialAyudaRepository,
-            IncidenciaRepository incidenciaRepository,
+            EmailService emailService,
             ObjectMapper objectMapper
     ) {
         this.ubicacionUsuarioRepository = ubicacionUsuarioRepository;
@@ -50,7 +50,7 @@ public class AyudaService {
         this.usuarioService = usuarioService;
         this.connectionRegistry = connectionRegistry;
         this.historialAyudaRepository = historialAyudaRepository;
-        this.incidenciaRepository = incidenciaRepository;
+        this.emailService = emailService;
         this.objectMapper = objectMapper;
     }
 
@@ -402,6 +402,8 @@ public class AyudaService {
         m.put("nombres", v.getNombres());
         m.put("apellidos", v.getApellidos());
         m.put("email", v.getEmail());
+        m.put("carrera", v.getCarrera());
+        m.put("codigo", v.getCodigo());
         if (v.getFotoPerfil() != null) m.put("fotoPerfil", v.getFotoPerfil());
         return m;
     }
@@ -412,9 +414,80 @@ public class AyudaService {
         m.put("nombres", d.getNombres());
         m.put("apellidos", d.getApellidos());
         m.put("telefono", d.getTelefono());
-        m.put("direccion", d.getDireccion());
         m.put("tipoDiscapacidad", d.getTipoDiscapacidad());
+        m.put("conadis", d.getConadis());
         return m;
+    }
+
+    /**
+     * Registra la calificacion y comentario del discapacitado hacia el voluntario.
+     * Solo se puede comentar una vez por historial.
+     */
+    public void registrarComentarioDiscapacitado(Long historialId, String calificacion,
+                                                  String comentario, Long discapacitadoId) {
+        HistorialAyuda historial = historialAyudaRepository.findById(historialId)
+                .orElseThrow(() -> new IllegalArgumentException("Historial no encontrado"));
+
+        // Verificar que el discapacitado es el dueño del historial
+        if (historial.getSolicitud().getDiscapacitado() == null ||
+                !discapacitadoId.equals(historial.getSolicitud().getDiscapacitado().getId())) {
+            throw new IllegalArgumentException("No autorizado para comentar este historial");
+        }
+
+        if (historial.isComentadoDiscapacitado()) {
+            throw new IllegalStateException("Ya has comentado esta asistencia");
+        }
+
+        // Validar calificacion
+        if (calificacion != null && !calificacion.isBlank()) {
+            if (!"Oro".equals(calificacion) && !"Plata".equals(calificacion) && !"Cobre".equals(calificacion)) {
+                throw new IllegalArgumentException("Calificacion invalida. Use: Oro, Plata o Cobre");
+            }
+            historial.setCalificacion(calificacion);
+        }
+
+        historial.setComentarioDiscapacitado(comentario);
+        historial.setComentadoDiscapacitado(true);
+        historialAyudaRepository.save(historial);
+
+        // Notificar por correo al voluntario
+        Voluntario voluntario = historial.getSolicitud().getVoluntarioAceptado();
+        if (voluntario != null && voluntario.getEmail() != null) {
+            String nombreDis = historial.getSolicitud().getDiscapacitado().getNombres()
+                    + " " + historial.getSolicitud().getDiscapacitado().getApellidos();
+            emailService.enviarComentarioAVoluntario(voluntario.getEmail(), nombreDis, calificacion, comentario);
+        }
+    }
+
+    /**
+     * Registra el comentario del voluntario hacia el discapacitado.
+     * Solo se puede comentar una vez por historial.
+     */
+    public void registrarComentarioVoluntario(Long historialId, String comentario, Long voluntarioId) {
+        HistorialAyuda historial = historialAyudaRepository.findById(historialId)
+                .orElseThrow(() -> new IllegalArgumentException("Historial no encontrado"));
+
+        // Verificar que el voluntario es el asignado del historial
+        if (historial.getSolicitud().getVoluntarioAceptado() == null ||
+                !voluntarioId.equals(historial.getSolicitud().getVoluntarioAceptado().getId())) {
+            throw new IllegalArgumentException("No autorizado para comentar este historial");
+        }
+
+        if (historial.isComentadoVoluntario()) {
+            throw new IllegalStateException("Ya has comentado esta asistencia");
+        }
+
+        historial.setComentarioVoluntario(comentario);
+        historial.setComentadoVoluntario(true);
+        historialAyudaRepository.save(historial);
+
+        // Notificar por correo al discapacitado
+        PersonaDiscapacitada discapacitado = historial.getSolicitud().getDiscapacitado();
+        if (discapacitado != null && discapacitado.getEmail() != null) {
+            String nombreVol = historial.getSolicitud().getVoluntarioAceptado().getNombres()
+                    + " " + historial.getSolicitud().getVoluntarioAceptado().getApellidos();
+            emailService.enviarComentarioADiscapacitado(discapacitado.getEmail(), nombreVol, comentario);
+        }
     }
 
     private double calcularDistanciaKm(double lat1, double lon1, double lat2, double lon2) {
