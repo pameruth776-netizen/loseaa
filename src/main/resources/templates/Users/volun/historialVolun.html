@@ -130,6 +130,21 @@
                 color: #059669;
                 border: 1px solid rgba(16, 185, 129, 0.25);
             }
+            .badge-pendiente {
+                background: rgba(245, 158, 11, 0.15);
+                color: #d97706;
+                border: 1px solid rgba(245, 158, 11, 0.25);
+            }
+            .badge-revision {
+                background: rgba(59, 130, 246, 0.15);
+                color: #2563eb;
+                border: 1px solid rgba(59, 130, 246, 0.25);
+            }
+            .badge-resuelto {
+                background: rgba(16, 185, 129, 0.15);
+                color: #059669;
+                border: 1px solid rgba(16, 185, 129, 0.25);
+            }
             
             /* User Info Layout */
             .user-cell {
@@ -317,6 +332,11 @@
                     min-width: 36px;
                     font-size: 0.95rem;
                 }
+                /* Dirección en móvil: texto alineado a la derecha */
+                .historial-table td[data-label="Dirección"] div {
+                    max-width: 160px;
+                    text-align: right;
+                }
             }
 
             /* ===== MÓVIL MUY PEQUEÑO (≤380px) ===== */
@@ -352,6 +372,13 @@
             }
             .btn-green:hover {
                 background: #059669;
+                transform: translateY(-1px);
+            }
+            .btn-red {
+                background: #EF4444;
+            }
+            .btn-red:hover {
+                background: #DC2626;
                 transform: translateY(-1px);
             }
 
@@ -414,6 +441,18 @@
                 outline: none;
                 border-color: #f97316;
             }
+            .modal-file-label {
+                display: block;
+                font-weight: 700;
+                font-size: 0.88rem;
+                color: #475569;
+                margin-bottom: 8px;
+            }
+            .modal-file-input {
+                width: 100%;
+                margin-bottom: 20px;
+                font-family: inherit;
+            }
             .modal-actions {
                 display: flex;
                 justify-content: flex-end;
@@ -441,6 +480,13 @@
             }
             .btn-modal-submit:hover {
                 background: #059669;
+            }
+            .btn-modal-danger {
+                background: #EF4444;
+                color: white;
+            }
+            .btn-modal-danger:hover {
+                background: #DC2626;
             }
         </style>
 
@@ -495,10 +541,7 @@
                                 <span th:text="${#temporals.format(h.fechaFinalizacion, 'dd/MM/yyyy hh:mm a')}">08/06/2026 04:30 PM</span>
                             </td>
                             <td data-label="Calificación">
-                                <span th:if="${h.calificacion == 'SIN_CALIFICAR' || h.calificacion == null}" style="color: #9ca3af; font-style: italic;">Sin calificar</span>
-                                <span th:if="${h.calificacion == 'MEDALLA_ORO'}" class="badge-status" style="background: rgba(254, 240, 138, 0.3); color: #854d0e; border: 1px solid rgba(254, 240, 138, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de oro 🥇</span>
-                                <span th:if="${h.calificacion == 'MEDALLA_PLATA'}" class="badge-status" style="background: rgba(243, 244, 246, 0.3); color: #4b5563; border: 1px solid rgba(243, 244, 246, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de plata 🥈</span>
-                                <span th:if="${h.calificacion == 'MEDALLA_COBRE'}" class="badge-status" style="background: rgba(254, 215, 170, 0.3); color: #c2410c; border: 1px solid rgba(254, 215, 170, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de cobre 🥉</span>
+                                <span th:text="${h.calificacion != null ? h.calificacion + '/5 ★' : 'Sin calificar'}">4/5 ★</span>
                             </td>
                             <td data-label="Estado">
                                 <span class="badge-status badge-finalizada">
@@ -508,18 +551,27 @@
                                     Finalizada
                                 </span>
                             </td>
+                            <td data-label="Calificación">
+                                <span th:if="${h.calificacion == 'SIN_CALIFICAR'}" style="color: #9ca3af; font-style: italic;">Sin calificar</span>
+                                <span th:if="${h.calificacion == 'MEDALLA_ORO'}" class="badge-status" style="background: rgba(254, 240, 138, 0.3); color: #854d0e; border: 1px solid rgba(254, 240, 138, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de oro 🥇</span>
+                                <span th:if="${h.calificacion == 'MEDALLA_PLATA'}" class="badge-status" style="background: rgba(243, 244, 246, 0.3); color: #4b5563; border: 1px solid rgba(243, 244, 246, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de plata 🥈</span>
+                                <span th:if="${h.calificacion == 'MEDALLA_COBRE'}" class="badge-status" style="background: rgba(254, 215, 170, 0.3); color: #c2410c; border: 1px solid rgba(254, 215, 170, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de cobre 🥉</span>
+                            </td>
                             <td data-label="Acciones">
                                 <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                                    <!-- Mostrar botón Comentar si el comentario está vacío o es nulo -->
-                                    <button th:if="${h.comentarioVoluntario == null || #strings.isEmpty(h.comentarioVoluntario)}"
-                                            class="btn-action btn-green" 
-                                            th:onclick="'abrirModalComentar(' + ${h.id} + ')'">Comentar</button>
+                                    <button class="btn-action btn-green" th:onclick="'abrirModalComentar(' + ${h.id} + ')'">Comentar</button>
                                     
-                                    <!-- Mostrar badge de Comentado si ya tiene comentario -->
-                                    <button th:if="${h.comentarioVoluntario != null && !#strings.isEmpty(h.comentarioVoluntario)}"
-                                            class="btn-action" 
-                                            style="background-color: #9ca3af; cursor: not-allowed;" 
-                                            disabled>Comentado</button>
+                                    <!-- Comprobar si ya existe incidencia reportada por el voluntario actual en este historial -->
+                                    <th:block th:with="myIncidents=${h.incidencias.?[denunciante.id == session.usuario.id]}">
+                                        <button th:if="${myIncidents.isEmpty()}" 
+                                                class="btn-action btn-red" 
+                                                th:onclick="'abrirModalIncidencia(' + ${h.id} + ')'">Incidencia</button>
+                                        
+                                        <span th:if="${!myIncidents.isEmpty()}" 
+                                              class="badge-status"
+                                              th:classappend="${myIncidents[0].estado == 'PENDIENTE' ? ' badge-pendiente' : (myIncidents[0].estado == 'EN_REVISION' ? ' badge-revision' : ' badge-resuelto')}"
+                                              th:text="${myIncidents[0].estado}">PENDIENTE</span>
+                                    </th:block>
                                 </div>
                             </td>
                         </tr>
@@ -528,91 +580,173 @@
             </div>
         </div>
 
-        <!-- Modal Comentar -->
-        <div id="modalComentar" class="modal-overlay">
-            <div class="modal-box">
-                <h3 class="modal-title">¿Desea dejarle un mensaje a la persona que ayudó?</h3>
-                <input type="hidden" id="comentarioHistorialId">
-                <textarea id="comentarioTexto" class="modal-textarea" placeholder="Escribe tu mensaje aquí..."></textarea>
-                <div class="modal-actions">
-                    <button class="btn-modal btn-modal-cancel" onclick="cerrarModalComentar()">Cancelar</button>
-                    <button class="btn-modal btn-modal-submit" onclick="enviarComentario()">Enviar</button>
-                </div>
+    <!-- Modal Comentar -->
+    <div id="modalComentar" class="modal-overlay">
+        <div class="modal-box">
+            <h3 class="modal-title">¿Desea dejarle un mensaje a la persona que ayudó?</h3>
+            <input type="hidden" id="comentarioHistorialId">
+            <textarea id="comentarioTexto" class="modal-textarea" placeholder="Escribe tu mensaje aquí..."></textarea>
+            <div class="modal-actions">
+                <button class="btn-modal btn-modal-cancel" onclick="cerrarModalComentar()">Cancelar</button>
+                <button class="btn-modal btn-modal-submit" onclick="enviarComentario()">Enviar</button>
             </div>
         </div>
+    </div>
 
-        <script>
-            // Abrir/Cerrar Modal Comentar
-            function abrirModalComentar(id) {
-                document.getElementById('comentarioHistorialId').value = id;
-                document.getElementById('comentarioTexto').value = '';
-                document.getElementById('modalComentar').classList.add('active');
-            }
-            function cerrarModalComentar() {
-                document.getElementById('modalComentar').classList.remove('active');
+    <!-- Modal Incidencia -->
+    <div id="modalIncidencia" class="modal-overlay">
+        <div class="modal-box">
+            <h3 class="modal-title">¿Hubo algún problema mientras estaba brindando su ayuda?</h3>
+            <input type="hidden" id="incidenciaHistorialId">
+            <textarea id="incidenciaTexto" class="modal-textarea" placeholder="Describe el problema aquí..."></textarea>
+            <label class="modal-file-label" for="incidenciaEvidencia">Adjuntar evidencia foto o audio (Opcional):</label>
+            <input type="file" id="incidenciaEvidencia" class="modal-file-input" accept="image/*,audio/*">
+            <div class="modal-actions">
+                <button class="btn-modal btn-modal-cancel" onclick="cerrarModalIncidencia()">Cancelar</button>
+                <button class="btn-modal btn-modal-danger" onclick="enviarIncidencia()">Reportar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Éxito Incidencia -->
+    <div id="modalExitoIncidencia" class="modal-overlay">
+        <div class="modal-box" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 16px;">✉️</div>
+            <h3 class="modal-title">¡Incidencia Reportada!</h3>
+            <p style="color: #475569; font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px;">
+                Su reporte ha sido recibido. Los detalles de la solución de la incidencia se le enviarán por correo electrónico una vez sea resuelta.
+            </p>
+            <button class="btn-modal btn-modal-submit" onclick="cerrarModalExitoIncidencia()" style="width: 100%;">Entendido</button>
+        </div>
+    </div>
+
+    <script>
+        // Abrir/Cerrar Modal Comentar
+        function abrirModalComentar(id) {
+            document.getElementById('comentarioHistorialId').value = id;
+            document.getElementById('comentarioTexto').value = '';
+            document.getElementById('modalComentar').classList.add('active');
+        }
+        function cerrarModalComentar() {
+            document.getElementById('modalComentar').classList.remove('active');
+        }
+
+        // Enviar Comentario
+        function enviarComentario() {
+            const id = document.getElementById('comentarioHistorialId').value;
+            const comentario = document.getElementById('comentarioTexto').value;
+            if (!comentario.trim()) {
+                mostrarToast("Por favor, escribe un comentario.");
+                return;
             }
 
-            // Enviar Comentario
-            function enviarComentario() {
-                const id = document.getElementById('comentarioHistorialId').value;
-                const comentario = document.getElementById('comentarioTexto').value;
-                if (!comentario.trim()) {
-                    mostrarToast("Por favor, escribe un comentario.");
-                    return;
+            fetch('/api/ayuda/historial/' + id + '/comentar-voluntario', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ comentario: comentario })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    mostrarToast("¡Comentario enviado!");
+                    cerrarModalComentar();
+                } else {
+                    mostrarToast("Error: " + data.error);
                 }
+            })
+            .catch(err => {
+                console.error(err);
+                mostrarToast("Error de red.");
+            });
+        }
 
-                fetch('/api/ayuda/historial/' + id + '/comentar-voluntario', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ comentario: comentario })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        mostrarToast("¡Comentario enviado!");
-                        cerrarModalComentar();
-                        window.location.reload();
-                    } else {
-                        mostrarToast("Error: " + data.error);
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    mostrarToast("Error de red.");
-                });
+        // Abrir/Cerrar Modal Incidencia
+        function abrirModalIncidencia(id) {
+            document.getElementById('incidenciaHistorialId').value = id;
+            document.getElementById('incidenciaTexto').value = '';
+            document.getElementById('incidenciaEvidencia').value = '';
+            document.getElementById('modalIncidencia').classList.add('active');
+        }
+        function cerrarModalIncidencia() {
+            document.getElementById('modalIncidencia').classList.remove('active');
+        }
+
+        // Enviar Incidencia
+        function enviarIncidencia() {
+            const id = document.getElementById('incidenciaHistorialId').value;
+            const descripcion = document.getElementById('incidenciaTexto').value;
+            const fileInput = document.getElementById('incidenciaEvidencia');
+
+            if (!descripcion.trim()) {
+                mostrarToast("Por favor, describe la incidencia.");
+                return;
             }
 
-            // Toast de notificación simple
-            function mostrarToast(mensaje) {
-                let toast = document.getElementById('custom-toast');
-                if (!toast) {
-                    toast = document.createElement('div');
-                    toast.id = 'custom-toast';
-                    toast.style.position = 'fixed';
-                    toast.style.bottom = '20px';
-                    toast.style.left = '50%';
-                    toast.style.transform = 'translateX(-50%) translateY(100px)';
-                    toast.style.backgroundColor = '#1e293b';
-                    toast.style.color = '#ffffff';
-                    toast.style.padding = '12px 24px';
-                    toast.style.borderRadius = '30px';
-                    toast.style.fontFamily = 'Outfit, sans-serif';
-                    toast.style.fontSize = '0.95rem';
-                    toast.style.fontWeight = '700';
-                    toast.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
-                    toast.style.transition = 'transform 0.3s ease';
-                    toast.style.zIndex = '9999';
-                    document.body.appendChild(toast);
+            const formData = new FormData();
+            formData.append('descripcion', descripcion);
+            if (fileInput.files.length > 0) {
+                formData.append('evidencia', fileInput.files[0]);
+            }
+
+            fetch('/api/ayuda/historial/' + id + '/incidencia-voluntario', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    cerrarModalIncidencia();
+                    abrirModalExitoIncidencia();
+                } else {
+                    mostrarToast("Error: " + data.error);
                 }
-                toast.textContent = mensaje;
-                toast.style.transform = 'translateX(-50%) translateY(0)';
-                setTimeout(() => {
-                    toast.style.transform = 'translateX(-50%) translateY(100px)';
-                }, 3000);
+            })
+            .catch(err => {
+                console.error(err);
+                mostrarToast("Error de red.");
+            });
+        }
+
+        function abrirModalExitoIncidencia() {
+            document.getElementById('modalExitoIncidencia').classList.add('active');
+        }
+
+        function cerrarModalExitoIncidencia() {
+            document.getElementById('modalExitoIncidencia').classList.remove('active');
+            window.location.reload();
+        }
+
+        // Toast de notificación simple
+        function mostrarToast(mensaje) {
+            let toast = document.getElementById('custom-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'custom-toast';
+                toast.style.position = 'fixed';
+                toast.style.bottom = '20px';
+                toast.style.left = '50%';
+                toast.style.transform = 'translateX(-50%) translateY(100px)';
+                toast.style.backgroundColor = '#1e293b';
+                toast.style.color = '#ffffff';
+                toast.style.padding = '12px 24px';
+                toast.style.borderRadius = '30px';
+                toast.style.fontFamily = 'Outfit, sans-serif';
+                toast.style.fontSize = '0.95rem';
+                toast.style.fontWeight = '700';
+                toast.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+                toast.style.transition = 'transform 0.3s ease';
+                toast.style.zIndex = '9999';
+                document.body.appendChild(toast);
             }
-        </script>
+            toast.textContent = mensaje;
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+            setTimeout(() => {
+                toast.style.transform = 'translateX(-50%) translateY(100px)';
+            }, 3000);
+        }
+    </script>
     </div>
 </body>
 </html>
