@@ -47,6 +47,9 @@ public class AdminController {
     @Autowired
     private AdministradorRepository administradorRepository;
 
+    @Autowired
+    private com.redsolidaria.enjambre.ws.AyudaConnectionRegistry ayudaConnectionRegistry;
+
     // ========== DASHBOARD ==========
     
     @GetMapping("/dashboard")
@@ -210,10 +213,10 @@ public class AdminController {
         }
 
         List<Incidencia> incidencias = incidenciaRepository.findAllByOrderByFechaCreacionDesc();
-        // Transición automática a EN_REVISION al ser visualizadas por el admin
+        // Transición automática a PROCESANDO al ser visualizadas por el admin
         for (Incidencia inc : incidencias) {
             if ("PENDIENTE".equals(inc.getEstado())) {
-                inc.setEstado("EN_REVISION");
+                inc.setEstado("PROCESANDO");
                 incidenciaRepository.save(inc);
             }
         }
@@ -284,22 +287,44 @@ public class AdminController {
                         inc.getDenunciado().getNombreCompleto(),
                         resolucionDetalles
                     );
+
+                    // Notificación WebSocket al denunciante
+                    try {
+                        java.util.Map<String, Object> wsPayload = new java.util.HashMap<>();
+                        wsPayload.put("type", "INCIDENCIA_RESUELTA");
+                        wsPayload.put("incidenciaId", inc.getId());
+                        wsPayload.put("resolucion", "La resolución para tu reporte contra " + inc.getDenunciado().getNombreCompleto() + " es: " + resolucionDetalles);
+                        ayudaConnectionRegistry.sendToUser(inc.getDenunciante().getId(), wsPayload);
+                    } catch (Exception wsEx) {
+                        System.err.println("[WS] Error enviando notificación de resolución: " + wsEx.getMessage());
+                    }
                 }
+            }
+
+            // Notificación WebSocket al denunciado (sancionado)
+            try {
+                java.util.Map<String, Object> wsPayload = new java.util.HashMap<>();
+                wsPayload.put("type", "SANCION_RECIBIDA");
+                wsPayload.put("tipoSancion", tipoSancion);
+                wsPayload.put("motivo", "Has recibido una sanción (" + tipoSancion + ") por: " + (motivo != null && !motivo.isEmpty() ? motivo : resolucionDetalles));
+                ayudaConnectionRegistry.sendToUser(reportedUserId, wsPayload);
+            } catch (Exception wsEx) {
+                System.err.println("[WS] Error enviando notificación de sanción: " + wsEx.getMessage());
             }
 
             boolean isVoluntario = "VOLUNTARIO".equals(reportedUser.getRol());
 
             if ("AVISO_1".equals(tipoSancion)) {
                 emailService.enviarPrimerAvisoIncidencia(reportedUser.getEmail(), isVoluntario);
-                redirectAttributes.addFlashAttribute("success", "✅ Primer aviso registrado, incidencia resuelta y notificaciones enviadas por correo");
+                redirectAttributes.addFlashAttribute("success", "✅ Primer aviso registrado, incidencia resuelta y notificaciones enviadas");
             } else if ("AVISO_2".equals(tipoSancion)) {
                 emailService.enviarSegundoAvisoIncidencia(reportedUser.getEmail(), isVoluntario);
-                redirectAttributes.addFlashAttribute("success", "✅ Segundo aviso registrado, incidencia resuelta y notificaciones enviadas por correo");
+                redirectAttributes.addFlashAttribute("success", "✅ Segundo aviso registrado, incidencia resuelta y notificaciones enviadas");
             } else if ("BLOQUEO".equals(tipoSancion)) {
                 reportedUser.setEstado("BLOQUEADO");
                 usuarioService.guardarUsuario(reportedUser);
                 emailService.enviarBloqueoCuentaIncidencia(reportedUser.getEmail(), isVoluntario, motivo);
-                redirectAttributes.addFlashAttribute("success", "🚫 Cuenta bloqueada permanentemente, incidencia resuelta y notificaciones enviadas por correo");
+                redirectAttributes.addFlashAttribute("success", "🚫 Cuenta bloqueada permanentemente, incidencia resuelta y notificaciones enviadas");
             }
 
         } catch (Exception e) {

@@ -29,6 +29,9 @@ public class Incidencia {
     @JoinColumn(name = "denunciado_id", nullable = false)
     private Usuario denunciado;
 
+    @Column(name = "titulo", nullable = false)
+    private String titulo;
+
     @Column(name = "descripcion", columnDefinition = "TEXT", nullable = false)
     private String descripcion;
 
