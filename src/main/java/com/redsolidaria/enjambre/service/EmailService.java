@@ -169,4 +169,43 @@ public class EmailService {
                       "Saludos,\nEquipo Red Solidaria UTP";
         sendEmailViaBrevo(emailDiscapacitado, "💬 Mensaje de tu voluntario - Red Solidaria UTP", text);
     }
+
+    @Async
+    public void enviarResolucionIncidencia(String emailDestino, String nombreDenunciante, String nombreDenunciado, String detalles) {
+        String text = "Hola " + nombreDenunciante + ",\n\n" +
+                      "Te informamos que la incidencia reportada contra " + nombreDenunciado + " ha sido resuelta.\n" +
+                      "Detalles de la resolución: " + detalles + "\n\n" +
+                      "Saludos,\nEquipo Red Solidaria UTP";
+        sendEmailViaBrevo(emailDestino, "Resolución de Incidencia - Red Solidaria UTP", text);
+    }
+
+    @Async
+    public void enviarPrimerAvisoIncidencia(String emailDestino, boolean isVoluntario) {
+        String rol = isVoluntario ? "voluntario" : "beneficiario";
+        String text = "Hola,\n\n" +
+                      "Has recibido un primer aviso de advertencia debido a un comportamiento inadecuado reportado en la plataforma como " + rol + ".\n" +
+                      "Por favor, mantén una actitud respetuosa y cumple con nuestras normas de convivencia.\n\n" +
+                      "Saludos,\nEquipo Red Solidaria UTP";
+        sendEmailViaBrevo(emailDestino, "⚠️ Primer Aviso de Advertencia - Red Solidaria UTP", text);
+    }
+
+    @Async
+    public void enviarSegundoAvisoIncidencia(String emailDestino, boolean isVoluntario) {
+        String rol = isVoluntario ? "voluntario" : "beneficiario";
+        String text = "Hola,\n\n" +
+                      "Has recibido un segundo aviso de advertencia debido a reportes sobre tu comportamiento como " + rol + ".\n" +
+                      "Te recordamos que un reporte adicional resultará en la inhabilitación permanente de tu cuenta.\n\n" +
+                      "Saludos,\nEquipo Red Solidaria UTP";
+        sendEmailViaBrevo(emailDestino, "⚠️ Segundo Aviso de Advertencia - Red Solidaria UTP", text);
+    }
+
+    @Async
+    public void enviarBloqueoCuentaIncidencia(String emailDestino, boolean isVoluntario, String motivo) {
+        String rol = isVoluntario ? "voluntario" : "beneficiario";
+        String text = "Hola,\n\n" +
+                      "Lamentamos informarte que tu cuenta como " + rol + " ha sido bloqueada permanentemente debido a la acumulación de reportes o a una falta grave.\n" +
+                      "Motivo del bloqueo: " + motivo + "\n\n" +
+                      "Saludos,\nEquipo Red Solidaria UTP";
+        sendEmailViaBrevo(emailDestino, "🚫 Cuenta bloqueada permanentemente - Red Solidaria UTP", text);
+    }
 }

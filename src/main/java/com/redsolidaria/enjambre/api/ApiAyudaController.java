@@ -108,8 +108,8 @@ public class ApiAyudaController {
         }
     }
 
-    @PostMapping("/comentar-discapacitado")
-    public ResponseEntity<?> comentarComoDiscapacitado(@RequestBody Map<String, Object> payload, HttpSession session) {
+    @PostMapping("/historial/{id}/calificar")
+    public ResponseEntity<?> calificarAyuda(@PathVariable Long id, @RequestBody Map<String, Object> payload, HttpSession session) {
         Usuario usuario = (Usuario) session.getAttribute("usuario");
         if (usuario == null || !"DISCAPACITADO".equalsIgnoreCase(usuario.getRol())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -117,24 +117,36 @@ public class ApiAyudaController {
         }
 
         try {
-            if (payload.get("historialId") == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "El campo 'historialId' es obligatorio"));
+            if (payload.get("calificacion") == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "La calificación es obligatoria"));
             }
-            Long historialId = Long.parseLong(payload.get("historialId").toString());
-            String calificacion = payload.get("calificacion") != null ? payload.get("calificacion").toString() : null;
-            String comentario   = payload.get("comentario")   != null ? payload.get("comentario").toString()   : "";
-
-            ayudaService.registrarComentarioDiscapacitado(historialId, calificacion, comentario, usuario.getId());
-            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Comentario registrado correctamente."));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            String calificacion = payload.get("calificacion").toString();
+            ayudaService.calificarAyuda(id, calificacion, usuario.getId());
+            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Calificación guardada con éxito."));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Error al registrar comentario: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    @PostMapping("/comentar-voluntario")
-    public ResponseEntity<?> comentarComoVoluntario(@RequestBody Map<String, Object> payload, HttpSession session) {
+    @PostMapping("/historial/{id}/comentar-discapacitado")
+    public ResponseEntity<?> comentarComoDiscapacitado(@PathVariable Long id, @RequestBody Map<String, Object> payload, HttpSession session) {
+        Usuario usuario = (Usuario) session.getAttribute("usuario");
+        if (usuario == null || !"DISCAPACITADO".equalsIgnoreCase(usuario.getRol())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "No autorizado."));
+        }
+
+        try {
+            String comentario = payload.get("comentario") != null ? payload.get("comentario").toString() : "";
+            ayudaService.registrarComentarioDiscapacitado(id, comentario, usuario.getId());
+            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Comentario registrado con éxito."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/historial/{id}/comentar-voluntario")
+    public ResponseEntity<?> comentarComoVoluntario(@PathVariable Long id, @RequestBody Map<String, Object> payload, HttpSession session) {
         Usuario usuario = (Usuario) session.getAttribute("usuario");
         if (usuario == null || !"VOLUNTARIO".equalsIgnoreCase(usuario.getRol())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -142,18 +154,11 @@ public class ApiAyudaController {
         }
 
         try {
-            if (payload.get("historialId") == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "El campo 'historialId' es obligatorio"));
-            }
-            Long historialId = Long.parseLong(payload.get("historialId").toString());
             String comentario = payload.get("comentario") != null ? payload.get("comentario").toString() : "";
-
-            ayudaService.registrarComentarioVoluntario(historialId, comentario, usuario.getId());
-            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Mensaje registrado correctamente."));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            ayudaService.registrarComentarioVoluntario(id, comentario, usuario.getId());
+            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Comentario registrado con éxito."));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Error al registrar mensaje: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

@@ -420,34 +420,23 @@ public class AyudaService {
     }
 
     /**
-     * Registra la calificacion y comentario del discapacitado hacia el voluntario.
+     * Registra el comentario del discapacitado hacia el voluntario.
      * Solo se puede comentar una vez por historial.
      */
-    public void registrarComentarioDiscapacitado(Long historialId, String calificacion,
-                                                  String comentario, Long discapacitadoId) {
+    public void registrarComentarioDiscapacitado(Long historialId, String comentario, Long usuarioId) {
         HistorialAyuda historial = historialAyudaRepository.findById(historialId)
                 .orElseThrow(() -> new IllegalArgumentException("Historial no encontrado"));
 
-        // Verificar que el discapacitado es el dueño del historial
         if (historial.getSolicitud().getDiscapacitado() == null ||
-                !discapacitadoId.equals(historial.getSolicitud().getDiscapacitado().getId())) {
+                !usuarioId.equals(historial.getSolicitud().getDiscapacitado().getId())) {
             throw new IllegalArgumentException("No autorizado para comentar este historial");
         }
 
-        if (historial.isComentadoDiscapacitado()) {
+        if (historial.getComentarioDiscapacitado() != null && !historial.getComentarioDiscapacitado().isBlank()) {
             throw new IllegalStateException("Ya has comentado esta asistencia");
         }
 
-        // Validar calificacion
-        if (calificacion != null && !calificacion.isBlank()) {
-            if (!"Oro".equals(calificacion) && !"Plata".equals(calificacion) && !"Cobre".equals(calificacion)) {
-                throw new IllegalArgumentException("Calificacion invalida. Use: Oro, Plata o Cobre");
-            }
-            historial.setCalificacion(calificacion);
-        }
-
         historial.setComentarioDiscapacitado(comentario);
-        historial.setComentadoDiscapacitado(true);
         historialAyudaRepository.save(historial);
 
         // Notificar por correo al voluntario
@@ -455,7 +444,7 @@ public class AyudaService {
         if (voluntario != null && voluntario.getEmail() != null) {
             String nombreDis = historial.getSolicitud().getDiscapacitado().getNombres()
                     + " " + historial.getSolicitud().getDiscapacitado().getApellidos();
-            emailService.enviarComentarioAVoluntario(voluntario.getEmail(), nombreDis, calificacion, comentario);
+            emailService.enviarComentarioAVoluntario(voluntario.getEmail(), nombreDis, historial.getCalificacion(), comentario);
         }
     }
 
@@ -463,22 +452,20 @@ public class AyudaService {
      * Registra el comentario del voluntario hacia el discapacitado.
      * Solo se puede comentar una vez por historial.
      */
-    public void registrarComentarioVoluntario(Long historialId, String comentario, Long voluntarioId) {
+    public void registrarComentarioVoluntario(Long historialId, String comentario, Long usuarioId) {
         HistorialAyuda historial = historialAyudaRepository.findById(historialId)
                 .orElseThrow(() -> new IllegalArgumentException("Historial no encontrado"));
 
-        // Verificar que el voluntario es el asignado del historial
         if (historial.getSolicitud().getVoluntarioAceptado() == null ||
-                !voluntarioId.equals(historial.getSolicitud().getVoluntarioAceptado().getId())) {
+                !usuarioId.equals(historial.getSolicitud().getVoluntarioAceptado().getId())) {
             throw new IllegalArgumentException("No autorizado para comentar este historial");
         }
 
-        if (historial.isComentadoVoluntario()) {
+        if (historial.getComentarioVoluntario() != null && !historial.getComentarioVoluntario().isBlank()) {
             throw new IllegalStateException("Ya has comentado esta asistencia");
         }
 
         historial.setComentarioVoluntario(comentario);
-        historial.setComentadoVoluntario(true);
         historialAyudaRepository.save(historial);
 
         // Notificar por correo al discapacitado
@@ -558,101 +545,5 @@ public class AyudaService {
 
         historial.setCalificacion(calificacion);
         historialAyudaRepository.save(historial);
-    }
-
-    public void guardarComentarioDiscapacitado(Long historialId, String comentario, Long usuarioId) {
-        HistorialAyuda historial = historialAyudaRepository.findById(historialId)
-                .orElseThrow(() -> new IllegalArgumentException("Historial de ayuda no encontrado"));
-
-        if (historial.getSolicitud().getDiscapacitado() == null ||
-                !usuarioId.equals(historial.getSolicitud().getDiscapacitado().getId())) {
-            throw new IllegalArgumentException("No estás autorizado para comentar esta ayuda");
-        }
-
-        historial.setComentarioDiscapacitado(comentario);
-        historialAyudaRepository.save(historial);
-    }
-
-    public void guardarComentarioVoluntario(Long historialId, String comentario, Long usuarioId) {
-        HistorialAyuda historial = historialAyudaRepository.findById(historialId)
-                .orElseThrow(() -> new IllegalArgumentException("Historial de ayuda no encontrado"));
-
-        if (historial.getSolicitud().getVoluntarioAceptado() == null ||
-                !usuarioId.equals(historial.getSolicitud().getVoluntarioAceptado().getId())) {
-            throw new IllegalArgumentException("No estás autorizado para comentar esta ayuda");
-        }
-
-        historial.setComentarioVoluntario(comentario);
-        historialAyudaRepository.save(historial);
-    }
-
-    public void guardarIncidenciaDiscapacitado(Long historialId, String descripcion, MultipartFile archivo, Long usuarioId) throws java.io.IOException {
-        HistorialAyuda historial = historialAyudaRepository.findById(historialId)
-                .orElseThrow(() -> new IllegalArgumentException("Historial de ayuda no encontrado"));
-
-        if (historial.getSolicitud().getDiscapacitado() == null ||
-                !usuarioId.equals(historial.getSolicitud().getDiscapacitado().getId())) {
-            throw new IllegalArgumentException("No estás autorizado para reportar incidencias en esta ayuda");
-        }
-
-        Incidencia incidencia = new Incidencia();
-        incidencia.setHistorialAyuda(historial);
-        incidencia.setDenunciante(historial.getSolicitud().getDiscapacitado());
-        incidencia.setDenunciado(historial.getSolicitud().getVoluntarioAceptado());
-        incidencia.setDescripcion(descripcion);
-        incidencia.setEstado("PENDIENTE");
-
-        if (archivo != null && !archivo.isEmpty()) {
-            String path = guardarArchivoIncidencia(archivo, "incidencia_disca");
-            incidencia.setEvidenciaUrl(path);
-        }
-
-        incidenciaRepository.save(incidencia);
-    }
-
-    public void guardarIncidenciaVoluntario(Long historialId, String descripcion, MultipartFile archivo, Long usuarioId) throws java.io.IOException {
-        HistorialAyuda historial = historialAyudaRepository.findById(historialId)
-                .orElseThrow(() -> new IllegalArgumentException("Historial de ayuda no encontrado"));
-
-        if (historial.getSolicitud().getVoluntarioAceptado() == null ||
-                !usuarioId.equals(historial.getSolicitud().getVoluntarioAceptado().getId())) {
-            throw new IllegalArgumentException("No estás autorizado para reportar incidencias en esta ayuda");
-        }
-
-        Incidencia incidencia = new Incidencia();
-        incidencia.setHistorialAyuda(historial);
-        incidencia.setDenunciante(historial.getSolicitud().getVoluntarioAceptado());
-        incidencia.setDenunciado(historial.getSolicitud().getDiscapacitado());
-        incidencia.setDescripcion(descripcion);
-        incidencia.setEstado("PENDIENTE");
-
-        if (archivo != null && !archivo.isEmpty()) {
-            String path = guardarArchivoIncidencia(archivo, "incidencia_vol");
-            incidencia.setEvidenciaUrl(path);
-        }
-
-        incidenciaRepository.save(incidencia);
-    }
-
-    private String guardarArchivoIncidencia(MultipartFile file, String prefijo) throws java.io.IOException {
-        String uploadDir = "uploads/incidencias/";
-        java.io.File directorio = new java.io.File(uploadDir);
-        if (!directorio.exists()) {
-            directorio.mkdirs();
-        }
-
-        String extension = "";
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        }
-
-        String nombreArchivo = prefijo + "_" + System.currentTimeMillis() + "_" + UUID.randomUUID().toString().substring(0, 8) + extension;
-        String rutaCompleta = uploadDir + nombreArchivo;
-
-        java.nio.file.Path path = java.nio.file.Paths.get(rutaCompleta);
-        java.nio.file.Files.write(path, file.getBytes());
-
-        return "/uploads/incidencias/" + nombreArchivo;
     }
 }
