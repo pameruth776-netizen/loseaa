@@ -27,6 +27,7 @@ public class AyudaService {
     private final AyudaConnectionRegistry connectionRegistry;
     private final HistorialAyudaRepository historialAyudaRepository;
     private final EmailService emailService;
+    private final IncidenciaRepository incidenciaRepository;
 
     private final ObjectMapper objectMapper;
 
@@ -40,6 +41,7 @@ public class AyudaService {
             AyudaConnectionRegistry connectionRegistry,
             HistorialAyudaRepository historialAyudaRepository,
             EmailService emailService,
+            IncidenciaRepository incidenciaRepository,
             ObjectMapper objectMapper
     ) {
         this.ubicacionUsuarioRepository = ubicacionUsuarioRepository;
@@ -51,6 +53,7 @@ public class AyudaService {
         this.connectionRegistry = connectionRegistry;
         this.historialAyudaRepository = historialAyudaRepository;
         this.emailService = emailService;
+        this.incidenciaRepository = incidenciaRepository;
         this.objectMapper = objectMapper;
     }
 
