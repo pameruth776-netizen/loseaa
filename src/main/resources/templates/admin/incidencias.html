@@ -336,7 +336,7 @@
                     <div class="adm-activ-list">
                         <div class="adm-activ-item"
                              th:each="inc : ${incidencias}"
-                             th:onclick="|showIncidenceDetails(${inc.id}, this)|">
+                             th:attr="data-incidencia-id=${inc.id}">
                             <span class="adm-avatar adm-avatar--indigo" style="background-color: #FEE2E2; color: #EF4444; font-weight: 800;">!</span>
                             <div>
                                 <div class="adm-cell-user__name" style="font-weight: 700; color: #1E293B;" th:text="'Incidencia #' + ${inc.id}">Incidencia #1</div>
@@ -469,8 +469,8 @@
                                         Segundo aviso
                                     </button>
                                 </form>
-                                <button type="button" class="btn-sancion btn-sancion--red" 
-                                        th:onclick="|openBlockModal(${inc.historialAyuda.id}, ${inc.denunciado.id}, '${inc.denunciado.nombreCompleto}')|">
+                                <button type="button" class="btn-sancion btn-sancion--red open-block-btn"
+                                        th:attr="data-historial-id=${inc.historialAyuda.id}, data-reported-user-id=${inc.denunciado.id}, data-user-name=${inc.denunciado.nombreCompleto}">
                                     <svg viewBox="0 0 24 24" style="width:16px; height:16px; fill:white;"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
                                     Bloquear cuenta
                                 </button>
@@ -567,8 +567,8 @@
                                         Segundo aviso
                                     </button>
                                 </form>
-                                <button type="button" class="btn-sancion btn-sancion--red" 
-                                        th:onclick="|openBlockModal(${inc.historialAyuda.id}, ${inc.denunciado.id}, '${inc.denunciado.nombreCompleto}')|">
+                                <button type="button" class="btn-sancion btn-sancion--red open-block-btn" 
+                                        th:attr="data-historial-id=${inc.historialAyuda.id}, data-reported-user-id=${inc.denunciado.id}, data-user-name=${inc.denunciado.nombreCompleto}">
                                     <svg viewBox="0 0 24 24" style="width:16px; height:16px; fill:white;"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
                                     Bloquear cuenta
                                 </button>
@@ -673,6 +673,25 @@
             }
             return true;
         }
+
+        // Attach event listeners to list items and block buttons to avoid inline onclick quoting issues
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.adm-activ-item').forEach(function(item) {
+                item.addEventListener('click', function(e) {
+                    const id = this.getAttribute('data-incidencia-id');
+                    if (id) showIncidenceDetails(id, this);
+                });
+            });
+
+            document.querySelectorAll('.open-block-btn').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    const historialId = this.getAttribute('data-historial-id');
+                    const reportedUserId = this.getAttribute('data-reported-user-id');
+                    const userName = this.getAttribute('data-user-name') || '';
+                    openBlockModal(historialId, reportedUserId, userName);
+                });
+            });
+        });
     </script>
 </div>
 </body>
