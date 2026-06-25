@@ -6,6 +6,7 @@ import com.redsolidaria.enjambre.model.Usuario;
 import com.redsolidaria.enjambre.repository.HistorialAyudaRepository;
 import com.redsolidaria.enjambre.repository.IncidenciaRepository;
 import com.redsolidaria.enjambre.service.UsuarioService;
+import com.redsolidaria.enjambre.service.ArchivoService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -16,15 +17,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Controller
 public class IncidenciaController {
@@ -37,6 +32,9 @@ public class IncidenciaController {
 
     @Autowired
     private UsuarioService usuarioService;
+
+    @Autowired
+    private ArchivoService archivoService;
 
     // ========== DISCAPACITADO ==========
 
@@ -83,19 +81,11 @@ public class IncidenciaController {
                 throw new IllegalArgumentException("No hay un voluntario asociado a este historial para reportar.");
             }
 
-            // Validar archivo de video
+            // Guardar evidencia usando ArchivoService si se ha adjuntado
+            String evidenciaUrl = null;
             if (evidencia != null && !evidencia.isEmpty()) {
-                String contentType = evidencia.getContentType();
-                if (contentType != null && contentType.startsWith("video/")) {
-                    if (evidencia.getSize() > 10 * 1024 * 1024) { // 10MB
-                        redirectAttributes.addFlashAttribute("error", "❌ El video no debe superar los 10 MB.");
-                        return "redirect:/discapacitado/incidencias";
-                    }
-                }
+                evidenciaUrl = archivoService.guardarEvidencia(evidencia);
             }
-
-            // Guardar evidencia
-            String evidenciaUrl = guardarEvidencia(evidencia, "evidencia_disc");
 
             // Crear y guardar incidencia
             Incidencia incidencia = new Incidencia();
@@ -112,6 +102,8 @@ public class IncidenciaController {
 
             redirectAttributes.addFlashAttribute("success", "✅ Incidencia reportada exitosamente. Se encuentra en estado PENDIENTE.");
 
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", "❌ " + e.getMessage());
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "❌ Error al reportar la incidencia: " + e.getMessage());
         }
@@ -164,19 +156,11 @@ public class IncidenciaController {
                 throw new IllegalArgumentException("No hay una persona con discapacidad asociada a este historial para reportar.");
             }
 
-            // Validar archivo de video
+            // Guardar evidencia usando ArchivoService si se ha adjuntado
+            String evidenciaUrl = null;
             if (evidencia != null && !evidencia.isEmpty()) {
-                String contentType = evidencia.getContentType();
-                if (contentType != null && contentType.startsWith("video/")) {
-                    if (evidencia.getSize() > 10 * 1024 * 1024) { // 10MB
-                        redirectAttributes.addFlashAttribute("error", "❌ El video no debe superar los 10 MB.");
-                        return "redirect:/voluntario/incidencias";
-                    }
-                }
+                evidenciaUrl = archivoService.guardarEvidencia(evidencia);
             }
-
-            // Guardar evidencia
-            String evidenciaUrl = guardarEvidencia(evidencia, "evidencia_vol");
 
             // Crear y guardar incidencia
             Incidencia incidencia = new Incidencia();
@@ -193,53 +177,12 @@ public class IncidenciaController {
 
             redirectAttributes.addFlashAttribute("success", "✅ Incidencia reportada exitosamente. Se encuentra en estado PENDIENTE.");
 
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", "❌ " + e.getMessage());
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "❌ Error al reportar la incidencia: " + e.getMessage());
         }
 
         return "redirect:/voluntario/incidencias";
-    }
-
-    // ========== UTILERÍA ==========
-
-    private String guardarEvidencia(MultipartFile file, String prefijo) throws IOException {
-        if (file == null || file.isEmpty()) {
-            return null;
-        }
-
-        // Formatear la fecha actual: yyyy-MM-dd
-        String fechaDir = LocalDate.now().toString(); // e.g. "2026-06-25"
-        String relPath = "incidencia/" + fechaDir + "/";
-
-        // Rutas absolutas para guardar los archivos
-        String srcDir = "src/main/resources/static/" + relPath;
-        String targetDir = "target/classes/static/" + relPath;
-
-        // Crear directorios si no existen
-        new File(srcDir).mkdirs();
-        new File(targetDir).mkdirs();
-
-        // Obtener la extensión del archivo
-        String extension = "";
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        }
-
-        // Generar nombre único para el archivo
-        String nombreArchivo = prefijo + "_" + System.currentTimeMillis() + "_" + UUID.randomUUID().toString().substring(0, 8) + extension;
-
-        byte[] bytes = file.getBytes();
-
-        // Guardar en src/main/resources/static
-        Path pathSrc = Paths.get(srcDir + nombreArchivo);
-        Files.write(pathSrc, bytes);
-
-        // Guardar en target/classes/static (para recarga en caliente sin reiniciar el servidor)
-        Path pathTarget = Paths.get(targetDir + nombreArchivo);
-        Files.write(pathTarget, bytes);
-
-        // Retornar ruta web servida
-        return "/" + relPath + nombreArchivo;
     }
 }
