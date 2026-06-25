@@ -142,4 +142,32 @@ public class EmailService {
                         "Saludos,\nEquipo Red Solidaria UTP";
         sendEmailViaBrevo(emailDestino, "⚠️ Actualización sobre tu donación de producto - Red Solidaria UTP", text);
     }
+
+    @Async
+    public void enviarComentarioAVoluntario(String emailVoluntario, String nombreDiscapacitado,
+                                             String calificacion, String comentario) {
+        String medalla = calificacion != null ? switch (calificacion) {
+            case "Oro"   -> "🥇 Oro";
+            case "Plata" -> "🥈 Plata";
+            case "Cobre" -> "🥉 Cobre";
+            default -> calificacion;
+        } : "Sin calificación";
+        String text = "Hola,\n\n" +
+                      "El beneficiario " + nombreDiscapacitado + " te ha dejado un comentario sobre la asistencia brindada:\n\n" +
+                      "📝 Comentario: " + comentario + "\n" +
+                      "⭐ Calificación: " + medalla + "\n\n" +
+                      "Gracias por tu valiosa labor como voluntario.\n\n" +
+                      "Saludos,\nEquipo Red Solidaria UTP";
+        sendEmailViaBrevo(emailVoluntario, "💬 Nuevo comentario de un beneficiario - Red Solidaria UTP", text);
+    }
+
+    @Async
+    public void enviarComentarioADiscapacitado(String emailDiscapacitado, String nombreVoluntario,
+                                               String comentario) {
+        String text = "Hola,\n\n" +
+                      "El voluntario " + nombreVoluntario + " te ha dejado un mensaje sobre la asistencia que te brindó:\n\n" +
+                      "📝 Mensaje: " + comentario + "\n\n" +
+                      "Saludos,\nEquipo Red Solidaria UTP";
+        sendEmailViaBrevo(emailDiscapacitado, "💬 Mensaje de tu voluntario - Red Solidaria UTP", text);
+    }
 }

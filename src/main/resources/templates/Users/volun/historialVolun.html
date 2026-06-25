@@ -367,9 +367,10 @@
                         <tr>
                             <th>Código</th>
                             <th>Persona Asistida</th>
-                            <th>Dirección</th>
                             <th>Fecha y Hora</th>
+                            <th>Calificación</th>
                             <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -385,12 +386,11 @@
                                 </div>
                                 <span th:if="${h.solicitud.discapacitado == null}" style="color: #9ca3af; font-style: italic;">No disponible</span>
                             </td>
-                            <td data-label="Dirección">
-                                <div style="max-width: 220px; word-wrap: break-word; font-size: 0.92rem; color: #4b5563;"
-                                     th:text="${h.solicitud.discapacitado != null ? h.solicitud.discapacitado.direccion : '—'}">Av. Arequipa 1234</div>
-                            </td>
                             <td data-label="Fecha y Hora">
                                 <span th:text="${#temporals.format(h.fechaFinalizacion, 'dd/MM/yyyy hh:mm a')}">08/06/2026 04:30 PM</span>
+                            </td>
+                            <td data-label="Calificación">
+                                <span th:text="${h.calificacion != null ? h.calificacion + '/5 ★' : 'Sin calificar'}">4/5 ★</span>
                             </td>
                             <td data-label="Estado">
                                 <span class="badge-status badge-finalizada">
