@@ -513,7 +513,9 @@
                 <h1 class="historial-title">Historial de Ayudas</h1>
                 <p class="historial-subtitle">Consulta el registro detallado de las asistencias que has recibido en la comunidad.</p>
             </div>
-            <div class="historial-card">
+        </div>
+
+        <div class="historial-card">
             <!-- Caso: No hay historial -->
             <div th:if="${#lists.isEmpty(historial)}" class="empty-state">
                 <span class="empty-state-icon" role="img" aria-label="Calendario vacío">📋</span>
@@ -550,47 +552,19 @@
                                 <span th:text="${#temporals.format(h.fechaFinalizacion, 'dd/MM/yyyy hh:mm a')}">08/06/2026 04:30 PM</span>
                             </td>
                             <td data-label="Calificación">
-                                <span th:if="${h.calificacion == 'Oro'}"   style="font-size:1.2rem;">🥇 Oro</span>
-                                <span th:if="${h.calificacion == 'Plata'}" style="font-size:1.2rem;">🥈 Plata</span>
-                                <span th:if="${h.calificacion == 'Cobre'}" style="font-size:1.2rem;">🥉 Cobre</span>
-                                <span th:if="${h.calificacion == null}"    style="color:#9ca3af;font-style:italic;font-size:0.88rem;">Sin calificar</span>
-                            </td>
-                            <td data-label="Acciones">
-                                <!-- Botón comentar si aún no comentó -->
-                                <button th:if="${!h.comentadoDiscapacitado}"
-                                        class="btn-comentar"
-                                        th:data-historial-id="${h.id}"
-                                        th:data-voluntario="${h.solicitud.voluntarioAceptado != null ? (h.solicitud.voluntarioAceptado.nombres + ' ' + h.solicitud.voluntarioAceptado.apellidos) : 'voluntario'}"
-                                        onclick="abrirModalComentario(this)">
-                                    💬 Comentar
-                                </button>
-                                <!-- Ya comentó -->
-                                <span th:if="${h.comentadoDiscapacitado}"
-                                      style="color:#16a34a;font-weight:700;font-size:0.88rem;">✅ Comentado</span>
-                            </td>
-                            <td data-label="Calificación">
                                 <select class="rating-select" th:onchange="'calificarAyuda(this, ' + ${h.id} + ')'">
-                                    <option value="SIN_CALIFICAR" th:selected="${h.calificacion == 'SIN_CALIFICAR'}">Sin calificar</option>
-                                    <option value="MEDALLA_ORO" th:selected="${h.calificacion == 'MEDALLA_ORO'}">Medalla de oro 🥇</option>
-                                    <option value="MEDALLA_PLATA" th:selected="${h.calificacion == 'MEDALLA_PLATA'}">Medalla de plata 🥈</option>
-                                    <option value="MEDALLA_COBRE" th:selected="${h.calificacion == 'MEDALLA_COBRE'}">Medalla de cobre 🥉</option>
+                                    <option value="SIN_CALIFICAR" th:selected="${h.calificacion == 'SIN_CALIFICAR' || h.calificacion == null}">Sin calificar</option>
+                                    <option value="MEDALLA_ORO" th:selected="${h.calificacion == 'MEDALLA_ORO' || h.calificacion == 'Oro'}">Medalla de oro 🥇</option>
+                                    <option value="MEDALLA_PLATA" th:selected="${h.calificacion == 'MEDALLA_PLATA' || h.calificacion == 'Plata'}">Medalla de plata 🥈</option>
+                                    <option value="MEDALLA_COBRE" th:selected="${h.calificacion == 'MEDALLA_COBRE' || h.calificacion == 'Cobre'}">Medalla de cobre 🥉</option>
                                 </select>
                             </td>
                             <td data-label="Acciones">
                                 <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                                    <button class="btn-action btn-green" th:onclick="'abrirModalComentar(' + ${h.id} + ')'">Comentar</button>
-                                    
-                                    <!-- Comprobar si ya existe incidencia reportada por el discapacitado actual en este historial -->
-                                    <th:block th:with="myIncidents=${h.incidencias.?[denunciante.id == session.usuario.id]}">
-                                        <button th:if="${myIncidents.isEmpty()}" 
-                                                class="btn-action btn-red" 
-                                                th:onclick="'abrirModalIncidencia(' + ${h.id} + ')'">Incidencia</button>
-                                        
-                                        <span th:if="${!myIncidents.isEmpty()}" 
-                                              class="badge-status"
-                                              th:classappend="${myIncidents[0].estado == 'PENDIENTE' ? ' badge-pendiente' : (myIncidents[0].estado == 'EN_REVISION' ? ' badge-revision' : ' badge-resuelto')}"
-                                              th:text="${myIncidents[0].estado}">PENDIENTE</span>
-                                    </th:block>
+                                    <!-- Botón comentar si aún no comentó -->
+                                    <button th:if="${!h.comentadoDiscapacitado}" class="btn-action btn-green" th:onclick="'abrirModalComentar(' + ${h.id} + ')'">Comentar</button>
+                                    <!-- Ya comentó -->
+                                    <span th:if="${h.comentadoDiscapacitado}" style="color:#16a34a;font-weight:700;font-size:0.88rem;">✅ Comentado</span>
                                 </div>
                             </td>
                         </tr>
@@ -608,33 +582,6 @@
                 <button class="btn-modal btn-modal-cancel" onclick="cerrarModalComentar()">Cancelar</button>
                 <button class="btn-modal btn-modal-submit" onclick="enviarComentario()">Enviar</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Modal Incidencia -->
-    <div id="modalIncidencia" class="modal-overlay">
-        <div class="modal-box">
-            <h3 class="modal-title">Hubo algún problema durante la ayuda que le brindaron</h3>
-            <input type="hidden" id="incidenciaHistorialId">
-            <textarea id="incidenciaTexto" class="modal-textarea" placeholder="Describe el problema aquí..."></textarea>
-            <label class="modal-file-label" for="incidenciaEvidencia">Adjuntar foto o audio (Opcional):</label>
-            <input type="file" id="incidenciaEvidencia" class="modal-file-input" accept="image/*,audio/*">
-            <div class="modal-actions">
-                <button class="btn-modal btn-modal-cancel" onclick="cerrarModalIncidencia()">Cancelar</button>
-                <button class="btn-modal btn-modal-danger" onclick="enviarIncidencia()">Reportar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Éxito Incidencia -->
-    <div id="modalExitoIncidencia" class="modal-overlay">
-        <div class="modal-box" style="text-align: center;">
-            <div style="font-size: 3rem; margin-bottom: 16px;">✉️</div>
-            <h3 class="modal-title">¡Incidencia Reportada!</h3>
-            <p style="color: #475569; font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px;">
-                Su reporte ha sido recibido. Los detalles de la solución de la incidencia se le enviarán por correo electrónico una vez sea resuelta.
-            </p>
-            <button class="btn-modal btn-modal-submit" onclick="cerrarModalExitoIncidencia()" style="width: 100%;">Entendido</button>
         </div>
     </div>
 
@@ -682,18 +629,21 @@
                 return;
             }
 
-            fetch('/api/ayuda/historial/' + id + '/comentar-discapacitado', {
+            fetch('/api/ayuda/comentar-discapacitado', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ comentario: comentario })
+                body: JSON.stringify({ historialId: id, comentario: comentario })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     mostrarToast("¡Comentario enviado!");
                     cerrarModalComentar();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 } else {
                     mostrarToast("Error: " + data.error);
                 }
@@ -702,62 +652,6 @@
                 console.error(err);
                 mostrarToast("Error de red.");
             });
-        }
-
-        // Abrir/Cerrar Modal Incidencia
-        function abrirModalIncidencia(id) {
-            document.getElementById('incidenciaHistorialId').value = id;
-            document.getElementById('incidenciaTexto').value = '';
-            document.getElementById('incidenciaEvidencia').value = '';
-            document.getElementById('modalIncidencia').classList.add('active');
-        }
-        function cerrarModalIncidencia() {
-            document.getElementById('modalIncidencia').classList.remove('active');
-        }
-
-        // Enviar Incidencia
-        function enviarIncidencia() {
-            const id = document.getElementById('incidenciaHistorialId').value;
-            const descripcion = document.getElementById('incidenciaTexto').value;
-            const fileInput = document.getElementById('incidenciaEvidencia');
-
-            if (!descripcion.trim()) {
-                mostrarToast("Por favor, describe la incidencia.");
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('descripcion', descripcion);
-            if (fileInput.files.length > 0) {
-                formData.append('evidencia', fileInput.files[0]);
-            }
-
-            fetch('/api/ayuda/historial/' + id + '/incidencia-discapacitado', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    cerrarModalIncidencia();
-                    abrirModalExitoIncidencia();
-                } else {
-                    mostrarToast("Error: " + data.error);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                mostrarToast("Error de red.");
-            });
-        }
-
-        function abrirModalExitoIncidencia() {
-            document.getElementById('modalExitoIncidencia').classList.add('active');
-        }
-
-        function cerrarModalExitoIncidencia() {
-            document.getElementById('modalExitoIncidencia').classList.remove('active');
-            window.location.reload();
         }
 
         // Toast de notificación simple
@@ -790,174 +684,5 @@
         }
     </script>
     </div>
-
-    <!-- ===== MODAL DE CALIFICACIÓN Y COMENTARIO ===== -->
-    <div id="modalComentario" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.5);
-         display:none;align-items:center;justify-content:center;padding:16px;">
-        <div style="background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.25);
-                    width:100%;max-width:480px;padding:28px;position:relative;">
-            <button onclick="cerrarModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;
-                    font-size:1.5rem;cursor:pointer;color:#6b7280;line-height:1;">×</button>
-            <h2 style="margin:0 0 4px;font-size:1.25rem;font-weight:800;color:#1e3a5f;">Calificar asistencia</h2>
-            <p id="modalSubtitulo" style="margin:0 0 20px;font-size:0.9rem;color:#6b7280;"></p>
-
-            <!-- Selección de medalla -->
-            <p style="font-weight:700;color:#374151;margin:0 0 10px;">¿Cómo calificarías la ayuda recibida?</p>
-            <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
-                <label class="medal-opt" for="medalOro">
-                    <input type="radio" id="medalOro"   name="medalla" value="Oro"   style="display:none;">
-                    <span>🥇 Oro</span>
-                </label>
-                <label class="medal-opt" for="medalPlata">
-                    <input type="radio" id="medalPlata" name="medalla" value="Plata" style="display:none;">
-                    <span>🥈 Plata</span>
-                </label>
-                <label class="medal-opt" for="medalCobre">
-                    <input type="radio" id="medalCobre" name="medalla" value="Cobre" style="display:none;">
-                    <span>🥉 Cobre</span>
-                </label>
-            </div>
-
-            <!-- Comentario -->
-            <label style="font-weight:700;color:#374151;display:block;margin-bottom:6px;">Deja un comentario (opcional):</label>
-            <textarea id="txtComentario" rows="3" maxlength="500"
-                      placeholder="Escribe tu experiencia con el voluntario..."
-                      style="width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:10px;
-                             padding:10px 12px;font-size:0.95rem;resize:vertical;font-family:inherit;
-                             transition:border-color .2s;"
-                      onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#d1d5db'"></textarea>
-            <div id="modalError" style="color:#dc2626;font-size:0.85rem;margin-top:6px;display:none;"></div>
-
-            <div style="display:flex;gap:10px;margin-top:18px;">
-                <button onclick="cerrarModal()" style="flex:1;padding:12px;border:1px solid #d1d5db;background:#f9fafb;
-                        border-radius:999px;font-weight:700;cursor:pointer;font-size:0.95rem;">Cancelar</button>
-                <button id="btnEnviarComentario" onclick="enviarComentario()"
-                        style="flex:2;padding:12px;border:none;background:#3b82f6;color:white;
-                               border-radius:999px;font-weight:800;font-size:0.95rem;cursor:pointer;
-                               transition:background .18s;"
-                        onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
-                    Enviar calificación
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <style>
-        .btn-comentar {
-            padding: 7px 16px;
-            background: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 999px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: background .18s, transform .18s;
-            white-space: nowrap;
-        }
-        .btn-comentar:hover { background: #2563eb; transform: scale(1.02); }
-
-        .medal-opt {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 9px 16px;
-            border: 2px solid #e5e7eb;
-            border-radius: 999px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 700;
-            color: #374151;
-            transition: border-color .18s, background .18s;
-            user-select: none;
-        }
-        .medal-opt:has(input:checked) {
-            border-color: #3b82f6;
-            background: #eff6ff;
-            color: #1e40af;
-        }
-        .medal-opt:hover { border-color: #93c5fd; }
-    </style>
-
-    <script>
-        let _historialIdActual = null;
-
-        function abrirModalComentario(btn) {
-            _historialIdActual = btn.dataset.historialId;
-            const voluntario = btn.dataset.voluntario || 'el voluntario';
-            document.getElementById('modalSubtitulo').textContent =
-                'Estás evaluando la asistencia de ' + voluntario;
-            document.getElementById('txtComentario').value = '';
-            document.getElementById('modalError').style.display = 'none';
-            document.querySelectorAll('input[name="medalla"]').forEach(r => r.checked = false);
-            document.querySelectorAll('.medal-opt').forEach(l => {
-                l.style.borderColor = '';
-                l.style.background = '';
-            });
-            const modal = document.getElementById('modalComentario');
-            modal.style.display = 'flex';
-        }
-
-        function cerrarModal() {
-            document.getElementById('modalComentario').style.display = 'none';
-        }
-
-        async function enviarComentario() {
-            const historialId = _historialIdActual;
-            const calificacion = document.querySelector('input[name="medalla"]:checked')?.value ?? null;
-            const comentario = document.getElementById('txtComentario').value.trim();
-            const errDiv = document.getElementById('modalError');
-            errDiv.style.display = 'none';
-
-            const btn = document.getElementById('btnEnviarComentario');
-            btn.disabled = true;
-            btn.textContent = 'Enviando...';
-
-            try {
-                const res = await fetch('/api/ayuda/comentar-discapacitado', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ historialId, calificacion, comentario })
-                });
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    cerrarModal();
-                    // Actualizar la fila sin recargar
-                    const btnComentar = document.querySelector(`button.btn-comentar[data-historial-id="${historialId}"]`);
-                    if (btnComentar) {
-                        const td = btnComentar.parentElement;
-                        td.innerHTML = '<span style="color:#16a34a;font-weight:700;font-size:0.88rem;">✅ Comentado</span>';
-                    }
-                    // Actualizar celda de calificación
-                    if (calificacion) {
-                        const row = document.querySelector(`button.btn-comentar[data-historial-id="${historialId}"]`)
-                            ?.closest('tr');
-                        if (!row) {
-                            // ya se eliminó el botón, buscar de otra forma
-                        } else {
-                            const celdaCal = row.querySelectorAll('td')[3];
-                            const iconos = { Oro: '🥇', Plata: '🥈', Cobre: '🥉' };
-                            if (celdaCal) celdaCal.innerHTML =
-                                `<span style="font-size:1.2rem;">${iconos[calificacion] ?? ''} ${calificacion}</span>`;
-                        }
-                    }
-                } else {
-                    errDiv.textContent = data.error || 'Error al enviar. Inténtalo de nuevo.';
-                    errDiv.style.display = 'block';
-                }
-            } catch (e) {
-                errDiv.textContent = 'Error de conexión. Verifica tu internet.';
-                errDiv.style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Enviar calificación';
-            }
-        }
-
-        // Cerrar modal al hacer clic fuera
-        document.getElementById('modalComentario')?.addEventListener('click', function(e) {
-            if (e.target === this) cerrarModal();
-        });
-    </script>
 </body>
 </html>

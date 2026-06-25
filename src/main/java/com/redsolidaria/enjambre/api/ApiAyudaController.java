@@ -108,6 +108,29 @@ public class ApiAyudaController {
         }
     }
 
+    @PostMapping("/historial/{id}/calificar")
+    public ResponseEntity<?> calificarAyuda(
+            @PathVariable("id") Long id,
+            @RequestBody Map<String, String> payload,
+            HttpSession session) {
+        Usuario usuario = (Usuario) session.getAttribute("usuario");
+        if (usuario == null || !"DISCAPACITADO".equalsIgnoreCase(usuario.getRol())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "No autorizado."));
+        }
+
+        try {
+            String calificacion = payload.get("calificacion");
+            if (calificacion == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El campo 'calificacion' es obligatorio"));
+            }
+            ayudaService.calificarAyuda(id, calificacion, usuario.getId());
+            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Calificación registrada correctamente."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Error al calificar: " + e.getMessage()));
+        }
+    }
+
     @PostMapping("/comentar-discapacitado")
     public ResponseEntity<?> comentarComoDiscapacitado(@RequestBody Map<String, Object> payload, HttpSession session) {
         Usuario usuario = (Usuario) session.getAttribute("usuario");

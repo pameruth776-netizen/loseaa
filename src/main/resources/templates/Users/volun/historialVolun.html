@@ -541,7 +541,10 @@
                                 <span th:text="${#temporals.format(h.fechaFinalizacion, 'dd/MM/yyyy hh:mm a')}">08/06/2026 04:30 PM</span>
                             </td>
                             <td data-label="Calificación">
-                                <span th:text="${h.calificacion != null ? h.calificacion + '/5 ★' : 'Sin calificar'}">4/5 ★</span>
+                                <span th:if="${h.calificacion == 'SIN_CALIFICAR' || h.calificacion == null}" style="color: #9ca3af; font-style: italic;">Sin calificar</span>
+                                <span th:if="${h.calificacion == 'MEDALLA_ORO' || h.calificacion == 'Oro'}" class="badge-status" style="background: rgba(254, 240, 138, 0.3); color: #854d0e; border: 1px solid rgba(254, 240, 138, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de oro 🥇</span>
+                                <span th:if="${h.calificacion == 'MEDALLA_PLATA' || h.calificacion == 'Plata'}" class="badge-status" style="background: rgba(243, 244, 246, 0.3); color: #4b5563; border: 1px solid rgba(243, 244, 246, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de plata 🥈</span>
+                                <span th:if="${h.calificacion == 'MEDALLA_COBRE' || h.calificacion == 'Cobre'}" class="badge-status" style="background: rgba(254, 215, 170, 0.3); color: #c2410c; border: 1px solid rgba(254, 215, 170, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de cobre 🥉</span>
                             </td>
                             <td data-label="Estado">
                                 <span class="badge-status badge-finalizada">
@@ -551,27 +554,12 @@
                                     Finalizada
                                 </span>
                             </td>
-                            <td data-label="Calificación">
-                                <span th:if="${h.calificacion == 'SIN_CALIFICAR'}" style="color: #9ca3af; font-style: italic;">Sin calificar</span>
-                                <span th:if="${h.calificacion == 'MEDALLA_ORO'}" class="badge-status" style="background: rgba(254, 240, 138, 0.3); color: #854d0e; border: 1px solid rgba(254, 240, 138, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de oro 🥇</span>
-                                <span th:if="${h.calificacion == 'MEDALLA_PLATA'}" class="badge-status" style="background: rgba(243, 244, 246, 0.3); color: #4b5563; border: 1px solid rgba(243, 244, 246, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de plata 🥈</span>
-                                <span th:if="${h.calificacion == 'MEDALLA_COBRE'}" class="badge-status" style="background: rgba(254, 215, 170, 0.3); color: #c2410c; border: 1px solid rgba(254, 215, 170, 0.5); font-weight: bold; font-size: 0.82rem; padding: 4px 10px; border-radius: 20px;">Medalla de cobre 🥉</span>
-                            </td>
                             <td data-label="Acciones">
                                 <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                                    <button class="btn-action btn-green" th:onclick="'abrirModalComentar(' + ${h.id} + ')'">Comentar</button>
-                                    
-                                    <!-- Comprobar si ya existe incidencia reportada por el voluntario actual en este historial -->
-                                    <th:block th:with="myIncidents=${h.incidencias.?[denunciante.id == session.usuario.id]}">
-                                        <button th:if="${myIncidents.isEmpty()}" 
-                                                class="btn-action btn-red" 
-                                                th:onclick="'abrirModalIncidencia(' + ${h.id} + ')'">Incidencia</button>
-                                        
-                                        <span th:if="${!myIncidents.isEmpty()}" 
-                                              class="badge-status"
-                                              th:classappend="${myIncidents[0].estado == 'PENDIENTE' ? ' badge-pendiente' : (myIncidents[0].estado == 'EN_REVISION' ? ' badge-revision' : ' badge-resuelto')}"
-                                              th:text="${myIncidents[0].estado}">PENDIENTE</span>
-                                    </th:block>
+                                    <!-- Botón comentar si aún no comentó -->
+                                    <button th:if="${!h.comentadoVoluntario}" class="btn-action btn-green" th:onclick="'abrirModalComentar(' + ${h.id} + ')'">Comentar</button>
+                                    <!-- Ya comentó -->
+                                    <span th:if="${h.comentadoVoluntario}" style="color: #16a34a; font-weight: 700; font-size: 0.88rem;">✅ Mensaje enviado</span>
                                 </div>
                             </td>
                         </tr>
@@ -593,32 +581,9 @@
         </div>
     </div>
 
-    <!-- Modal Incidencia -->
-    <div id="modalIncidencia" class="modal-overlay">
-        <div class="modal-box">
-            <h3 class="modal-title">¿Hubo algún problema mientras estaba brindando su ayuda?</h3>
-            <input type="hidden" id="incidenciaHistorialId">
-            <textarea id="incidenciaTexto" class="modal-textarea" placeholder="Describe el problema aquí..."></textarea>
-            <label class="modal-file-label" for="incidenciaEvidencia">Adjuntar evidencia foto o audio (Opcional):</label>
-            <input type="file" id="incidenciaEvidencia" class="modal-file-input" accept="image/*,audio/*">
-            <div class="modal-actions">
-                <button class="btn-modal btn-modal-cancel" onclick="cerrarModalIncidencia()">Cancelar</button>
-                <button class="btn-modal btn-modal-danger" onclick="enviarIncidencia()">Reportar</button>
-            </div>
-        </div>
-    </div>
+    
 
-    <!-- Modal Éxito Incidencia -->
-    <div id="modalExitoIncidencia" class="modal-overlay">
-        <div class="modal-box" style="text-align: center;">
-            <div style="font-size: 3rem; margin-bottom: 16px;">✉️</div>
-            <h3 class="modal-title">¡Incidencia Reportada!</h3>
-            <p style="color: #475569; font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px;">
-                Su reporte ha sido recibido. Los detalles de la solución de la incidencia se le enviarán por correo electrónico una vez sea resuelta.
-            </p>
-            <button class="btn-modal btn-modal-submit" onclick="cerrarModalExitoIncidencia()" style="width: 100%;">Entendido</button>
-        </div>
-    </div>
+    
 
     <script>
         // Abrir/Cerrar Modal Comentar
@@ -640,18 +605,21 @@
                 return;
             }
 
-            fetch('/api/ayuda/historial/' + id + '/comentar-voluntario', {
+            fetch('/api/ayuda/comentar-voluntario', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ comentario: comentario })
+                body: JSON.stringify({ historialId: id, comentario: comentario })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     mostrarToast("¡Comentario enviado!");
                     cerrarModalComentar();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 } else {
                     mostrarToast("Error: " + data.error);
                 }
@@ -660,62 +628,6 @@
                 console.error(err);
                 mostrarToast("Error de red.");
             });
-        }
-
-        // Abrir/Cerrar Modal Incidencia
-        function abrirModalIncidencia(id) {
-            document.getElementById('incidenciaHistorialId').value = id;
-            document.getElementById('incidenciaTexto').value = '';
-            document.getElementById('incidenciaEvidencia').value = '';
-            document.getElementById('modalIncidencia').classList.add('active');
-        }
-        function cerrarModalIncidencia() {
-            document.getElementById('modalIncidencia').classList.remove('active');
-        }
-
-        // Enviar Incidencia
-        function enviarIncidencia() {
-            const id = document.getElementById('incidenciaHistorialId').value;
-            const descripcion = document.getElementById('incidenciaTexto').value;
-            const fileInput = document.getElementById('incidenciaEvidencia');
-
-            if (!descripcion.trim()) {
-                mostrarToast("Por favor, describe la incidencia.");
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('descripcion', descripcion);
-            if (fileInput.files.length > 0) {
-                formData.append('evidencia', fileInput.files[0]);
-            }
-
-            fetch('/api/ayuda/historial/' + id + '/incidencia-voluntario', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    cerrarModalIncidencia();
-                    abrirModalExitoIncidencia();
-                } else {
-                    mostrarToast("Error: " + data.error);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                mostrarToast("Error de red.");
-            });
-        }
-
-        function abrirModalExitoIncidencia() {
-            document.getElementById('modalExitoIncidencia').classList.add('active');
-        }
-
-        function cerrarModalExitoIncidencia() {
-            document.getElementById('modalExitoIncidencia').classList.remove('active');
-            window.location.reload();
         }
 
         // Toast de notificación simple
