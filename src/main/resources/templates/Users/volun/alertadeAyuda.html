@@ -484,7 +484,7 @@
                     </div>
 
                     <div id="infoDiscapacitado" class="ml-voluntario">
-                        <h3>Beneficiario asignado</h3>
+                        <h3>♿ Beneficiario asignado</h3>
                         <div id="infoDiscapacitadoDetalle"></div>
                     </div>
 
@@ -520,7 +520,7 @@
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
                     </div>
-                    <p class="ml-stat-value" id="totalAyudados" th:text="${totalAyudados != null ? totalAyudados : 0}">0</p>
+                    <p class="ml-stat-value" id="totalAyudados">0</p>
                     <p class="ml-stat-label">Personas Ayudadas</p>
                 </div>
 
@@ -627,21 +627,18 @@
             let locationEnabled = false;
             let lastSentAt = 0;
             let lastPosition = null;
-            let lastSentPosition = null; // Filtrado de 2 metros para evitar ruido del GPS
+            let lastSentPosition = null;
             let sesionAceptada = false;
 
-            // solicitudId -> data
             const solicitudesActivas = new Map();
             let cachedUbicacionDiscapacitado = null;
             let solicitudAceptadaId = null;
 
-            // Map state
             let leafletMap = null;
             let disMarker = null;
             let miMarkerVol = null;
             let rutaLineVol = null;
 
-            // ── Toast ───────────────────────────────────────────────────────
             let toastTimer = null;
             const showToast = (msg, kind = '', durationMs = 3500) => {
                 const el = document.getElementById('mlToast');
@@ -654,7 +651,6 @@
                 toastTimer = setTimeout(() => el.classList.remove('show'), durationMs);
             };
 
-            // ── Helpers de distancia ───────────────────────────────────
             const calcDistKm = (lat1, lng1, lat2, lng2) => {
                 const R = 6371;
                 const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -872,9 +868,8 @@
                     }
                 }
             };
-            const setWsBadge = (text, kind = '') => {
+            const setWsBadge = (text) => {
                 if (!wsEstadoVol) return;
-                // No usamos "badge" visual grande aquí; solo texto discreto.
                 wsEstadoVol.textContent = text;
             };
 
@@ -945,7 +940,6 @@
                     </div>
                 `;
 
-                // Limpiar listeners (lo hacemos re-clonando con reemplazo si ya existe)
                 if (existing) existing.remove();
 
                 const wrapper = container.cloneNode(true);
@@ -1000,7 +994,6 @@
                 `;
                 infoDiv.style.display = 'block';
 
-                // Listener del botón de terminar
                 document.getElementById('btnTerminarAyuda')?.addEventListener('click', () => {
                     if (socket && socket.readyState === WebSocket.OPEN && solicitudAceptadaId) {
                         socket.send(JSON.stringify({ type: 'TERMINAR_AYUDA', solicitudId: solicitudAceptadaId }));
@@ -1030,7 +1023,6 @@
                 }
                 const infoDiv = document.getElementById('infoDiscapacitado');
                 if (infoDiv) infoDiv.style.display = 'none';
-                // Destruir mapa
                 if (leafletMap) {
                     leafletMap.remove();
                     leafletMap = null;
@@ -1040,7 +1032,6 @@
                 }
                 const distEl = document.getElementById('mapDistanciaVol');
                 if (distEl) distEl.textContent = '';
-                // Mostrar estado limpio
                 setSinAlertas();
                 showToast('✅ Ayuda finalizada. En espera de nuevas solicitudes.', 'success', 5000);
             };
@@ -1056,7 +1047,6 @@
                     return;
                 }
 
-                // Si vamos a aceptar, aseguramos que el backend tenga ubicación reciente.
                 if (decision === 'ACEPTAR') {
                     flushLastPosition();
                 }
@@ -1109,7 +1099,6 @@
 
                         lastPosition = { lat, lng, precisionMetros: precision, timestamp: now };
 
-                        // Reducir intervalo a 3s cuando hay sesión aceptada activa
                         const intervalo = sesionAceptada ? 3000 : 5000;
 
                         let debereEnviar = false;
@@ -1144,7 +1133,6 @@
                     { enableHighAccuracy: true, maximumAge: 500, timeout: 10000 }
                 );
 
-                // Refresco continuo de ubicación cada 3 segundos cuando la sesión de ayuda está aceptada y activa
                 setInterval(() => {
                     if (sesionAceptada && navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(
@@ -1261,6 +1249,10 @@
                             solicitudesActivas.clear();
                             if (lista) lista.innerHTML = '';
                             setSinAlertas();
+                            if (totalAyudados) {
+                                const current = Number(totalAyudados.textContent || '0') || 0;
+                                totalAyudados.textContent = String(current + 1);
+                            }
                             const ubConfirm = data.ubicacionDiscapacitado || cachedUbicacionDiscapacitado;
                             renderDiscapacitado(data.discapacitado, ubConfirm);
                             showToast('✅ ¡Solicitud aceptada! El mapa se actualiza en tiempo real.', 'success', 5000);
@@ -1274,22 +1266,14 @@
                             break;
                         }
                         case 'UBICACION_ACTUALIZADA': {
-                            // Actualizar marcador del discapacitado en tiempo real
                             if (data.lat != null && data.lng != null) {
                                 updateDisMarker(Number(data.lat), Number(data.lng));
                             }
                             break;
                         }
                         case 'SOLICITUD_CANCELADA':
-                        case 'SOLICITUD_CANCELADA_POR_USUARIO': {
-                            terminarAyuda();
-                            break;
-                        }
+                        case 'SOLICITUD_CANCELADA_POR_USUARIO':
                         case 'AYUDA_FINALIZADA': {
-                            if (totalAyudados) {
-                                const current = Number(totalAyudados.textContent || '0') || 0;
-                                totalAyudados.textContent = String(current + 1);
-                            }
                             terminarAyuda();
                             break;
                         }
