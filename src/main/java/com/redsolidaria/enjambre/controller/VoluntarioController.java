@@ -35,7 +35,13 @@ public class VoluntarioController {
     private ProgresoService progresoService;
 
     @GetMapping("/voluntario/inicio")
-    public String inicio() {
+    public String inicio(HttpSession session, Model model) {
+        Usuario usuario = (Usuario) session.getAttribute("usuario");
+        long totalAyudados = 0;
+        if (usuario != null && "VOLUNTARIO".equals(usuario.getRol())) {
+            totalAyudados = historialAyudaRepository.countBySolicitud_VoluntarioAceptado_Id(usuario.getId());
+        }
+        model.addAttribute("totalAyudados", totalAyudados);
         return "Users/volun/alertadeAyuda";
     }
 
@@ -110,7 +116,13 @@ public class VoluntarioController {
     }
 
     @GetMapping("/voluntario/alertas")
-    public String alertas() {
+    public String alertas(HttpSession session, Model model) {
+        Usuario usuario = (Usuario) session.getAttribute("usuario");
+        long totalAyudados = 0;
+        if (usuario != null && "VOLUNTARIO".equals(usuario.getRol())) {
+            totalAyudados = historialAyudaRepository.countBySolicitud_VoluntarioAceptado_Id(usuario.getId());
+        }
+        model.addAttribute("totalAyudados", totalAyudados);
         return "Users/volun/alertadeAyuda";
     }
 

@@ -520,7 +520,7 @@
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
                     </div>
-                    <p class="ml-stat-value" id="totalAyudados">0</p>
+                    <p class="ml-stat-value" id="totalAyudados" th:text="${totalAyudados != null ? totalAyudados : 0}">0</p>
                     <p class="ml-stat-label">Personas Ayudadas</p>
                 </div>
 
@@ -1261,10 +1261,6 @@
                             solicitudesActivas.clear();
                             if (lista) lista.innerHTML = '';
                             setSinAlertas();
-                            if (totalAyudados) {
-                                const current = Number(totalAyudados.textContent || '0') || 0;
-                                totalAyudados.textContent = String(current + 1);
-                            }
                             const ubConfirm = data.ubicacionDiscapacitado || cachedUbicacionDiscapacitado;
                             renderDiscapacitado(data.discapacitado, ubConfirm);
                             showToast('✅ ¡Solicitud aceptada! El mapa se actualiza en tiempo real.', 'success', 5000);
@@ -1285,8 +1281,15 @@
                             break;
                         }
                         case 'SOLICITUD_CANCELADA':
-                        case 'SOLICITUD_CANCELADA_POR_USUARIO':
+                        case 'SOLICITUD_CANCELADA_POR_USUARIO': {
+                            terminarAyuda();
+                            break;
+                        }
                         case 'AYUDA_FINALIZADA': {
+                            if (totalAyudados) {
+                                const current = Number(totalAyudados.textContent || '0') || 0;
+                                totalAyudados.textContent = String(current + 1);
+                            }
                             terminarAyuda();
                             break;
                         }

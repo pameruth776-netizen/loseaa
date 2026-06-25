@@ -6,6 +6,7 @@ import com.redsolidaria.enjambre.repository.*;
 import com.redsolidaria.enjambre.ws.AyudaConnectionRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -539,5 +540,119 @@ public class AyudaService {
         if (solicitud.getVoluntarioAceptado() != null) {
             connectionRegistry.sendToUser(solicitud.getVoluntarioAceptado().getId(), payload);
         }
+    }
+
+    public void calificarAyuda(Long historialId, String calificacion, Long usuarioId) {
+        HistorialAyuda historial = historialAyudaRepository.findById(historialId)
+                .orElseThrow(() -> new IllegalArgumentException("Historial de ayuda no encontrado"));
+
+        if (historial.getSolicitud().getDiscapacitado() == null ||
+                !usuarioId.equals(historial.getSolicitud().getDiscapacitado().getId())) {
+            throw new IllegalArgumentException("No estás autorizado para calificar esta ayuda");
+        }
+
+        List<String> validas = List.of("SIN_CALIFICAR", "MEDALLA_ORO", "MEDALLA_PLATA", "MEDALLA_COBRE");
+        if (!validas.contains(calificacion)) {
+            throw new IllegalArgumentException("Calificación no válida");
+        }
+
+        historial.setCalificacion(calificacion);
+        historialAyudaRepository.save(historial);
+    }
+
+    public void guardarComentarioDiscapacitado(Long historialId, String comentario, Long usuarioId) {
+        HistorialAyuda historial = historialAyudaRepository.findById(historialId)
+                .orElseThrow(() -> new IllegalArgumentException("Historial de ayuda no encontrado"));
+
+        if (historial.getSolicitud().getDiscapacitado() == null ||
+                !usuarioId.equals(historial.getSolicitud().getDiscapacitado().getId())) {
+            throw new IllegalArgumentException("No estás autorizado para comentar esta ayuda");
+        }
+
+        historial.setComentarioDiscapacitado(comentario);
+        historialAyudaRepository.save(historial);
+    }
+
+    public void guardarComentarioVoluntario(Long historialId, String comentario, Long usuarioId) {
+        HistorialAyuda historial = historialAyudaRepository.findById(historialId)
+                .orElseThrow(() -> new IllegalArgumentException("Historial de ayuda no encontrado"));
+
+        if (historial.getSolicitud().getVoluntarioAceptado() == null ||
+                !usuarioId.equals(historial.getSolicitud().getVoluntarioAceptado().getId())) {
+            throw new IllegalArgumentException("No estás autorizado para comentar esta ayuda");
+        }
+
+        historial.setComentarioVoluntario(comentario);
+        historialAyudaRepository.save(historial);
+    }
+
+    public void guardarIncidenciaDiscapacitado(Long historialId, String descripcion, MultipartFile archivo, Long usuarioId) throws java.io.IOException {
+        HistorialAyuda historial = historialAyudaRepository.findById(historialId)
+                .orElseThrow(() -> new IllegalArgumentException("Historial de ayuda no encontrado"));
+
+        if (historial.getSolicitud().getDiscapacitado() == null ||
+                !usuarioId.equals(historial.getSolicitud().getDiscapacitado().getId())) {
+            throw new IllegalArgumentException("No estás autorizado para reportar incidencias en esta ayuda");
+        }
+
+        Incidencia incidencia = new Incidencia();
+        incidencia.setHistorialAyuda(historial);
+        incidencia.setDenunciante(historial.getSolicitud().getDiscapacitado());
+        incidencia.setDenunciado(historial.getSolicitud().getVoluntarioAceptado());
+        incidencia.setDescripcion(descripcion);
+        incidencia.setEstado("PENDIENTE");
+
+        if (archivo != null && !archivo.isEmpty()) {
+            String path = guardarArchivoIncidencia(archivo, "incidencia_disca");
+            incidencia.setEvidenciaUrl(path);
+        }
+
+        incidenciaRepository.save(incidencia);
+    }
+
+    public void guardarIncidenciaVoluntario(Long historialId, String descripcion, MultipartFile archivo, Long usuarioId) throws java.io.IOException {
+        HistorialAyuda historial = historialAyudaRepository.findById(historialId)
+                .orElseThrow(() -> new IllegalArgumentException("Historial de ayuda no encontrado"));
+
+        if (historial.getSolicitud().getVoluntarioAceptado() == null ||
+                !usuarioId.equals(historial.getSolicitud().getVoluntarioAceptado().getId())) {
+            throw new IllegalArgumentException("No estás autorizado para reportar incidencias en esta ayuda");
+        }
+
+        Incidencia incidencia = new Incidencia();
+        incidencia.setHistorialAyuda(historial);
+        incidencia.setDenunciante(historial.getSolicitud().getVoluntarioAceptado());
+        incidencia.setDenunciado(historial.getSolicitud().getDiscapacitado());
+        incidencia.setDescripcion(descripcion);
+        incidencia.setEstado("PENDIENTE");
+
+        if (archivo != null && !archivo.isEmpty()) {
+            String path = guardarArchivoIncidencia(archivo, "incidencia_vol");
+            incidencia.setEvidenciaUrl(path);
+        }
+
+        incidenciaRepository.save(incidencia);
+    }
+
+    private String guardarArchivoIncidencia(MultipartFile file, String prefijo) throws java.io.IOException {
+        String uploadDir = "uploads/incidencias/";
+        java.io.File directorio = new java.io.File(uploadDir);
+        if (!directorio.exists()) {
+            directorio.mkdirs();
+        }
+
+        String extension = "";
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+
+        String nombreArchivo = prefijo + "_" + System.currentTimeMillis() + "_" + UUID.randomUUID().toString().substring(0, 8) + extension;
+        String rutaCompleta = uploadDir + nombreArchivo;
+
+        java.nio.file.Path path = java.nio.file.Paths.get(rutaCompleta);
+        java.nio.file.Files.write(path, file.getBytes());
+
+        return "/uploads/incidencias/" + nombreArchivo;
     }
 }
